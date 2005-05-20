@@ -174,24 +174,34 @@ else
 
       if(object_program(packet) == Packet.PMQPostMessage)
       {
-
+        set_network_mode(MODE_BLOCK);
         string queue_name = packet->get_queue();
         string sid = packet->get_session();
         Queue.PMQQueue q = manager->get_queue_by_name(queue_name);
+
         if(!q)
         {
           q = manager->new_queue(queue_name, "PMQQueue");
         }
+
+        Message.PMQMessage m = packet->get_pmqmessage();
+        Packet.PMQPacket r = Packet.PMQAck();
+        r->set_id(m->get_header("pmq-message-id"));
+        r->set_code(0);
+
         if(q)
         {
-write("got queue to post to.\n");
           PMQSSession s = get_session_by_id(sid, MODE_WRITE);
-write(sprintf("sessions: %O\n", write_sessions));
-          Message.PMQMessage m = packet->get_pmqmessage();
           
-          q->post_message(m, s);
-          return;
+          int pr = q->post_message(m, s);
+
+          r->set_code(pr);
+          
         }
+
+        send_packet(r, 1);       
+        set_network_mode(MODE_NONBLOCK);     
+        return;
       }
 
     }

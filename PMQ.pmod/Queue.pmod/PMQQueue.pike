@@ -30,10 +30,13 @@ void start()
 
 }
 
-void post_message(Message.PMQMessage message, PMQSSession session)
+int post_message(Message.PMQMessage message, PMQSSession session)
 {
   if(writers[session])
+  {
     q->write(message);
+    return 1;
+  }
   else return 0;
   process_queue();
 }

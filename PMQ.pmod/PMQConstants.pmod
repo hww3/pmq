@@ -2,7 +2,7 @@ constant MODE_LISTEN = 2;
 constant MODE_WRITE = 3;
 
 constant CODE_SUCCESS = 1;
-constant CODE_FAILURE = 2;
+constant CODE_FAILURE = 0;
 
 constant MODE_BLOCK = 250;
 constant MODE_NONBLOCK = 251;

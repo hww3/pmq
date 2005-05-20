@@ -26,8 +26,18 @@
     this->msg_data->id = id;
   }
 
-  string get_id()
+  void set_code(int code)
+  {
+    this->msg_data->code = code;
+  }
+
+  int get_id()
   {
     return this->msg_data->id;
+  }
+
+  int get_code()
+  {
+    return this->msg_data->cde;
   }
 

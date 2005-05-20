@@ -31,19 +31,30 @@ void set_queue(string queue)
 }
 
 
-void post(Message.PMQMessage m)
+int post(Message.PMQMessage m)
 {
   Packet.PMQPostMessage p = Packet.PMQPostMessage();
+  string message_id = generate_message_id();
 
   p->set_queue(get_queue());
   p->set_session(session->get_session_id());
   
-  m->set_header("PMQ-Message-Id", generate_message_id());
+  m->set_header("PMQ-Message-Id", message_id);
 
   p->set_pmqmessage(m);
 
-  session->get_connection()->send_packet(p);
+  
+  Packet.PMQPacket r = session->get_connection()->send_packet_await_response(p);
 
+  if((object_program(r) != Packet.PMQAck) || 
+    r->get_id != message_id)
+  {
+    session->get_connection()->handle_protocol_error();
+    return 0;
+  }
+
+  else return r->get_code();
+  
 }
 
 string generate_message_id()
