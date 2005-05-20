@@ -1,0 +1,56 @@
+import PMQConstants;
+
+ADT.Queue incoming = ADT.Queue();
+int message_no;
+PMQCSession session;
+string queue;
+
+void create()
+{
+
+}
+
+PMQCSession get_session()
+{
+  return this->session;
+}
+
+void set_session(PMQCSession session)
+{
+  this->session = session;
+}
+
+string get_queue()
+{
+  return this->queue;
+}
+
+void set_queue(string queue)
+{
+  this->queue = queue;
+}
+
+
+void post(Message.PMQMessage m)
+{
+  Packet.PMQPostMessage p = Packet.PMQPostMessage();
+
+  p->set_queue(get_queue());
+  p->set_session(session->get_session_id());
+  
+  m->set_header("PMQ-Message-Id", generate_message_id());
+
+  p->set_pmqmessage(m);
+
+  session->get_connection()->send_packet(p);
+
+}
+
+string generate_message_id()
+{
+  message_no++;
+
+  string id = session->get_session_id();
+  id = id + "-" + message_no;
+  return id;
+}
