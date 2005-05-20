@@ -49,7 +49,7 @@
   {
     Packet.PMQSHello packet = Packet.PMQSHello();
     packet->set_versions(({"1.0", "2.0"}));
-    send_packet(packet);
+    send_packet(packet, 1);
     connection_state = CONNECTION_SENT_SHELLO;
   }
 

@@ -1,4 +1,6 @@
   inherit .PMQPacket;
+  import PMQConstants;
+
   string type = "POSTMESSAGE";
 
   string encoded = "";
@@ -15,8 +17,6 @@
   int get_size()
   {
     msg_data->message_type = _message->_typeof();
-write(msg_data->message_type + "\n");
-write((string)_message);
     msg_data->message = (string)_message;
     encoded = encode_value(msg_data);
     return sizeof(encoded);
@@ -60,7 +60,7 @@ write((string)_message);
   void parse(string payload)
   {
     ::parse(payload);
-write("decoding message of type " + msg_data->message_type + "\n");
+    DEBUG(2, "decoding message of type " + msg_data->message_type + "\n");
     program p = master()->resolv("Message." + msg_data->message_type);
     
     if(!p)

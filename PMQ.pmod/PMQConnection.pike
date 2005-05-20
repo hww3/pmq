@@ -12,7 +12,6 @@
   constant MODE_CLIENT = 1;
   constant MODE_SERVER = 2;
 
-  //PMQQueueManager manager;
   ADT.Queue net_queue = ADT.Queue();
   object manager;
   Stdio.File conn;
@@ -47,8 +46,7 @@
   {
     do
     {
-      float r = backend();
-      if(r) write("backend: " + r + "\n");
+      float r = backend(5.0);
     } while(this);
   }
 
@@ -69,6 +67,7 @@
     else 
     {
       backend = Pike.DefaultBackend;
+      conn->set_nonblocking_keep_callbacks();
     }
 
     set_conn_callbacks();
@@ -81,6 +80,54 @@
     this->conn->set_read_callback(remote_read);
     this->conn->set_close_callback(remote_close);   
   }
+
+  string timeout_read (Stdio.File fd, int len, int timeout)
+  {
+    string res = "";
+    Pike.Backend be = Pike.Backend();
+    int end_time = time() + timeout;
+    int is_blocking = 0;
+    Pike.Backend o_be;
+    function r_cb, w_cb, c_cb;
+   
+    is_blocking = !(fd->mode() & 0x0400);
+
+    o_be = fd->query_backend();
+    r_cb = fd->query_read_callback();
+    c_cb = fd->query_close_callback();
+    w_cb = fd->query_write_callback();
+
+    fd->set_read_callback (lambda (mixed dummy, string s) {res += s;});
+    fd->set_close_callback (lambda () {end_time = 0; remote_close(); });
+    fd->set_backend (be);
+    fd->set_nonblocking_keep_callbacks();
+
+
+    while (time() < end_time)
+    {
+      be ((float)(end_time - time()));
+
+      if(sizeof(res) && len == UNDEFINED)
+        break;
+      if(len && sizeof(res) >= len) 
+      {
+        break;
+      }
+    }
+
+    fd->set_read_callback(r_cb);
+    fd->set_write_callback(w_cb);
+    fd->set_close_callback(c_cb);
+    fd->set_backend(o_be);
+    
+    if(is_blocking)
+    {
+      fd->set_blocking_keep_callbacks();
+    }
+
+    return res;
+  }
+
 
   int get_mode()
   {
@@ -95,7 +142,7 @@
   void remote_close()
   {
     connection_state = CONNECTION_DISCONNECT;
-    write("remote close\n");
+    DEBUG(4, "remote close\n");
     destruct();    
   }
 
@@ -105,6 +152,7 @@
     string packet_data="";
     read_buffer+=data;
 
+    DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
     if(network_state == NETWORK_STATE_LOOKCOMPLETE)
     {
 
@@ -221,17 +269,17 @@ void handle_protocol_error()
 
   void send_packet(Packet.PMQPacket packet, int|void immediate)
   {
-    werror("sending immediate packet: %O\n", packet); 
+//    werror("sending immediate packet: %O\n", packet); 
     if(!conn->is_open())
     {
-      write("closing conn\n");
+      DEBUG(3, "closing conn\n");
       conn->close();
     }
     if(net_mode == MODE_BLOCK && ! immediate)
       net_queue->write(packet);
     else if(this->conn)
     {
-    werror("sent\n"); 
+//    werror("sent\n"); 
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
       conn->write((string)packet);
     }
@@ -265,7 +313,6 @@ DEBUG(2, "catching up with queued packets.\n");
 
     if(!conn->is_open())
     {
- write("conn is closed!\n");
       conn->close();
     }
 
@@ -273,36 +320,31 @@ DEBUG(2, "catching up with queued packets.\n");
     {
       string dta;
       conn->set_blocking_keep_callbacks();
-      DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
-      conn->write((string)packet);
-      int ready = conn->peek(block_read_timeout);
-
-      if(ready !=1) 
-      {
-        DEBUG(1, "read timed out waiting for acknowledgment.\n");
-        return 0;
-      }
-      dta = conn->read(7);
-      if(!dta || sizeof(dta) != 7)
+      DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
+      send_packet(packet, 1);
+//      dta = conn->read(7);
+      dta = timeout_read(conn, 7, 5);
+DEBUG(5, "Read from conn: %O\n", dta);
+      if(!dta || sizeof(dta) < 7)
       {
         DEBUG(2, "unexpected response from remote: %O.\n", dta);
         return 0;
       }
       // PMQ plus payload len must be at the beginning of our buffer.
-      n = sscanf(dta, "PMQ%4c", my_look_len);
+      n = sscanf(dta, "PMQ%4c%s", my_look_len, dta);
    
       if(!n) error("unexpected response from server.\n");
-
-      ready = conn->peek(block_read_timeout);
-      if(ready !=1) 
+      if(sizeof(dta) < my_look_len)
       {
-        error("timed out waiting for acknowledgment.\n");
-        return 0;
+        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
+        DEBUG(5, "Read from conn: %O\n", dta);
       }
-      dta = conn->read(my_look_len);
-
-      if(sizeof(dta) != my_look_len)
+      if(sizeof(dta) < my_look_len)
         error("server shorted us!\n");
+      else if(sizeof(dta) > my_look_len)
+      {
+        backend->call_out(remote_read, 0, "", dta[my_look_len..]);
+      }
 
        Packet.PMQPacket p = parse_packet(dta, 1);
 

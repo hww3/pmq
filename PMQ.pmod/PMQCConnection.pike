@@ -30,6 +30,7 @@
     DEBUG(4, "PMQCConnection: create!\n");
     r = send_packet_await_response(p);
 
+    DEBUG(3, "%O->create(): got packet %O\n", this, r);
 
     if(object_program(r) == Packet.PMQSHello)
     {
@@ -38,7 +39,9 @@
       Packet.PMQPacket p = Packet.PMQCHello();
 
       string selected_version = select_version(r);
-        
+
+      DEBUG(2, "Selected protocol version %s\n", selected_version);
+         
       if(!selected_version)
       {
         handle_protocol_error();
@@ -52,6 +55,7 @@
       p->set_version(selected_version);    
       p->set_client_id(client_id);    
       r = send_packet_await_response(p);
+      DEBUG(3, "%O->create(): got packet %O\n", this, r);
       connection_state = CONNECTION_SENT_CHELLO;
 
      
