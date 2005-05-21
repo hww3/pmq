@@ -43,11 +43,10 @@ int post(Message.PMQMessage m)
 
   p->set_pmqmessage(m);
 
-  
   Packet.PMQPacket r = session->get_connection()->send_packet_await_response(p);
 
   if((object_program(r) != Packet.PMQAck) || 
-    r->get_id != message_id)
+    r->get_id() != message_id)
   {
     session->get_connection()->handle_protocol_error();
     return 0;

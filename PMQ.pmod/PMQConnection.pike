@@ -238,13 +238,18 @@ void handle_protocol_error()
     n = sscanf(packet_data, "%c%s", len, packet_data);
     n = sscanf(packet_data, "%" + len + "s%s", packet_type, packet_payload);
 
+    DEBUG(5, "parse_packet: %s, %O\n", packet_type, packet_payload);
+
     if(!packets[packet_type])
     {
+        DEBUG(3, "packet type not available.\n");
 	handle_protocol_error();
 	return;
     }
 
     else packet = packets[packet_type]();
+
+    DEBUG(5, "parse_packet: created a packet %O\n", packet);
 
     if(catch(packet->parse(packet_payload)))
     {
@@ -254,6 +259,7 @@ void handle_protocol_error()
     }
     else
     {
+      DEBUG(5, "what to do about the packet? %O\n", mode);
       if(mode)
         return packet; 
       else
@@ -322,7 +328,6 @@ DEBUG(2, "catching up with queued packets.\n");
       conn->set_blocking_keep_callbacks();
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);
-//      dta = conn->read(7);
       dta = timeout_read(conn, 7, 5);
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)

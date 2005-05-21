@@ -5,7 +5,7 @@ import PMQConstants;
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(10);  
+  DEBUG_LEVEL(0);  
   call_out(create_connection, 1);
   return -1; 
 }
