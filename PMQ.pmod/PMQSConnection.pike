@@ -53,7 +53,7 @@
     connection_state = CONNECTION_SENT_SHELLO;
   }
 
-  int send_message(Message.PMQMessage message, PMQSSession session)
+  int send_message(Message.PMQMessage message, PMQSSession session, int ack)
   {
     Packet.PMQDeliverMessage p = Packet.PMQDeliverMessage();
     string queue = session->get_queue()->name;
@@ -65,31 +65,37 @@
 DEBUG(5, "Message: %s\n", (string)message);
 
     p->set_pmqmessage(message);
+    p->set_ack(ack);
 
-    Packet.PMQPacket r = send_packet_await_response(p);
-if(r)
-  DEBUG(1, "got response from client.\n");
-else
-  DEBUG(1, "got nothing from client.\n");
+    if(ack)
+    {
+      Packet.PMQPacket r = send_packet_await_response(p);
+      if(!r)
+      {
+        write("trying to wake up connection..." + conn->query_address() + "\n");
+        return 0;
+      }
 
-    if(!r)
-    {
-      write("trying to wake up connection..." + conn->query_address() + "\n");
-      return 0;
+      if(object_program(r) != Packet.PMQAck)
+      {
+        if(r) remote_read("", (string)r);
+        return 0;
+      }
+      if(r->get_id() != message->headers["pmq-message-id"])
+      {
+        DEBUG(2, "got PMQAck for wrong message id: %s, got %s\n",
+           message->headers["pmq-message-id"], r->get_id());
+        return 0;
+      }
+      return 1;
     }
-
-    if(object_program(r) != Packet.PMQAck)
+    else
     {
-      if(r) remote_read("", (string)r);
-      return 0;
+     if(catch(send_packet(p)))
+       return 0;
+     else
+       return 1;
     }
-    if(r->get_id() != message->headers["pmq-message-id"])
-    {
-      DEBUG(2, "got PMQAck for wrong message id: %s, got %s\n",
-         message->headers["pmq-message-id"], r->get_id());
-      return 0;
-    }
-    return 1;
   }
 
   //
@@ -98,7 +104,6 @@ else
   //
   void handle_packet(Packet.PMQPacket packet)
   {
-    write(sprintf("handle_packet: got %O in state %d\n", packet, connection_state));
     // we can get a goodbye at any time.
     if(object_program(packet) == Packet.PMQGoodbye)
     {
@@ -174,7 +179,10 @@ else
 
       if(object_program(packet) == Packet.PMQPostMessage)
       {
-        set_network_mode(MODE_BLOCK);
+        Packet.PMQAck r;
+        if(packet->get_ack())
+          set_network_mode(MODE_BLOCK);
+
         string queue_name = packet->get_queue();
         string sid = packet->get_session();
         Queue.PMQQueue q = manager->get_queue_by_name(queue_name);
@@ -184,24 +192,32 @@ else
           q = manager->new_queue(queue_name, "PMQQueue");
         }
 
-        Message.PMQMessage m = packet->get_pmqmessage();
-        Packet.PMQPacket r = Packet.PMQAck();
-        r->set_id(m->get_header("pmq-message-id"));
-        r->set_code(0);
+          Message.PMQMessage m = packet->get_pmqmessage();
+
+        if(packet->get_ack())
+        {
+          r = Packet.PMQAck();
+          r->set_id(m->get_header("pmq-message-id"));
+          r->set_code(CODE_FAILURE);
+        }
 
         if(q)
         {
           PMQSSession s = get_session_by_id(sid, MODE_WRITE);
-          
+           
           int pr = q->post_message(m, s);
 
-          r->set_code(pr);
-          
+          if(packet->get_ack())
+          {
+            r->set_code(pr);
+          }
         }
 
-        send_packet(r, 1);       
-        set_network_mode(MODE_NONBLOCK);     
-        return;
+        if(packet->get_ack())
+        {
+          send_packet(r, 1);
+          set_network_mode(MODE_NONBLOCK);
+        }
       }
 
     }

@@ -56,29 +56,26 @@
     this->config = config;
     this->packets = packets;
     network_state = NETWORK_STATE_LOOKSTART;
+      backend = Pike.Backend();
+      handler = Thread.Thread(run_backend);
 
     if(get_mode() == MODE_CLIENT)
     {
-      DEBUG(2, "starting client backend thread\n");
-      backend = Pike.Backend();
-      handler = Thread.Thread(run_backend);
-      conn->set_blocking_keep_callbacks();
+//      DEBUG(2, "starting client backend thread\n");
+      backend->call_out(conn->set_blocking, 0);
     }
     else 
     {
-      backend = Pike.DefaultBackend;
-      conn->set_nonblocking_keep_callbacks();
+      set_conn_callbacks_nonblocking();
     }
-
-    set_conn_callbacks();
 
   }
 
-  void set_conn_callbacks()
+  void set_conn_callbacks_nonblocking()
   {
-    this->conn->set_backend(backend);
-    this->conn->set_read_callback(remote_read);
-    this->conn->set_close_callback(remote_close);   
+    conn->set_backend(backend);
+//    backend->call_out(conn->set_backend, 0, backend);
+    this->conn->set_nonblocking(remote_read, UNDEFINED, remote_close);
   }
 
   string timeout_read (Stdio.File fd, int len, int timeout)
@@ -97,11 +94,10 @@
     c_cb = fd->query_close_callback();
     w_cb = fd->query_write_callback();
 
-    fd->set_read_callback (lambda (mixed dummy, string s) {res += s;});
-    fd->set_close_callback (lambda () {end_time = 0; remote_close(); });
-    fd->set_backend (be);
-    fd->set_nonblocking_keep_callbacks();
-
+    fd->set_backend(be);
+    fd->set_nonblocking(lambda (mixed dummy, string s) {res += s;},
+                        0,
+                        lambda () {end_time = 0; remote_close(); });
 
     while (time() < end_time)
     {
@@ -115,14 +111,15 @@
       }
     }
 
-    fd->set_read_callback(r_cb);
-    fd->set_write_callback(w_cb);
-    fd->set_close_callback(c_cb);
     fd->set_backend(o_be);
     
     if(is_blocking)
     {
-      fd->set_blocking_keep_callbacks();
+      fd->set_blocking();
+    }
+    else
+    {
+      fd->set_nonblocking(r_cb, w_cb, c_cb);
     }
 
     return res;
@@ -152,7 +149,8 @@
     string packet_data="";
     read_buffer+=data;
 
-    DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
+//    DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
+
     if(network_state == NETWORK_STATE_LOOKCOMPLETE)
     {
 
@@ -185,7 +183,7 @@
       if(sizeof(read_buffer) < 7) return; // we must have at least 7 bytes
 
       // PMQ plus payload len must be at the beginning of our buffer.
-      n = sscanf(read_buffer, "PMQ%4c", my_look_len);
+      n = sscanf(read_buffer, "PMQ%4c%s", my_look_len, read_buffer);
 
       if(n == 0) // we have a protocol error.
       {
@@ -194,12 +192,6 @@
 
       else  // we have a valid packet header.
       {
-        // remove what we looked at.
-        if(sizeof(read_buffer) == 7) 
-          read_buffer = "";
-        else 
-          read_buffer = read_buffer[7..];
-
         look_len = my_look_len;
         packet_data = "";
         network_state = NETWORK_STATE_LOOKCOMPLETE;
@@ -213,9 +205,9 @@ void handle_protocol_error()
   DEBUG(3, "have a malformed packet\n");
   last_error = packet_num;
   send_packet(Packet.PMQBadPacket());
-  conn->close();
-  if(this)
-    destruct();
+//  conn->close();
+//  if(this)
+//    destruct();
 }
 
   void done()
@@ -231,7 +223,7 @@ void handle_protocol_error()
     string packet_type;
     string packet_payload;
     Packet.PMQPacket packet;
-
+DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     packet_num++;
     int n, len;
 
@@ -275,7 +267,6 @@ void handle_protocol_error()
 
   void send_packet(Packet.PMQPacket packet, int|void immediate)
   {
-//    werror("sending immediate packet: %O\n", packet); 
     if(!conn->is_open())
     {
       DEBUG(3, "closing conn\n");
@@ -285,7 +276,6 @@ void handle_protocol_error()
       net_queue->write(packet);
     else if(this->conn)
     {
-//    werror("sent\n"); 
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
       conn->write((string)packet);
     }
@@ -315,6 +305,7 @@ DEBUG(2, "catching up with queued packets.\n");
 
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet)
   {
+     set_network_mode(MODE_BLOCK);
     int n, my_look_len;
 
     if(!conn->is_open())
@@ -325,14 +316,16 @@ DEBUG(2, "catching up with queued packets.\n");
     if(this->conn)
     {
       string dta;
-      conn->set_blocking_keep_callbacks();
+      conn->set_blocking();
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);
-      dta = timeout_read(conn, 7, 5);
+      dta = conn->read(7);
+//      dta = timeout_read(conn, 7, 5);
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)
       {
         DEBUG(2, "unexpected response from remote: %O.\n", dta);
+     set_network_mode(MODE_NONBLOCK);
         return 0;
       }
       // PMQ plus payload len must be at the beginning of our buffer.
@@ -341,22 +334,26 @@ DEBUG(5, "Read from conn: %O\n", dta);
       if(!n) error("unexpected response from server.\n");
       if(sizeof(dta) < my_look_len)
       {
-        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
+//        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
+        dta = dta + conn->read(my_look_len-sizeof(dta));
         DEBUG(5, "Read from conn: %O\n", dta);
       }
       if(sizeof(dta) < my_look_len)
+       {
+     set_network_mode(MODE_NONBLOCK);
         error("server shorted us!\n");
+       }
       else if(sizeof(dta) > my_look_len)
       {
         backend->call_out(remote_read, 0, "", dta[my_look_len..]);
       }
 
        Packet.PMQPacket p = parse_packet(dta, 1);
+     set_network_mode(MODE_NONBLOCK);
 
        if(!p) error("couldn't parse the packet!\n");      
-                  
-       conn->set_nonblocking_keep_callbacks();
-       set_conn_callbacks();
+       set_conn_callbacks_nonblocking();
+
        return p;
    
     }

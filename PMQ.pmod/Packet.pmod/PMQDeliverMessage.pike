@@ -30,6 +30,16 @@
     return this->headers;
   }
 
+  int get_ack()
+  {
+    return this->msg_data->ack;
+  }
+ 
+  void set_ack(int flag)
+  {
+    this->msg_data->ack = flag;
+  }
+
   object get_pmqmessage()
   {
     return _message;

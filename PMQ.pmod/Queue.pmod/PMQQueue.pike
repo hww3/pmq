@@ -4,6 +4,7 @@ import PMQConstants;
 
 ADT.Queue q;
 
+int ack = 0;
 int processing = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
@@ -11,7 +12,7 @@ multiset writers = (<>);
 void create(string name)
 {
   this->name = name;
- write("Queue " + name + " created.\n");
+// write("Queue " + name + " created.\n");
   q = ADT.Queue();
 //  call_out(trigger_process_queue, 5);
 }
@@ -26,6 +27,11 @@ void trigger_process_queue()
 }
 
 void start()
+{
+
+}
+
+void stop()
 {
 
 }
@@ -54,7 +60,7 @@ void process_queue()
 
       foreach(indices(listeners);; PMQSSession listener)
       {
-        if(listener->send_message(m, listener)) q->read();
+        if(listener->send_message(m, listener, ack)) q->read();
         else
         {
            DEBUG(1, "%O: Delivery failed; aborting processing.\n", this);

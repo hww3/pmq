@@ -1,6 +1,6 @@
   inherit PMQConnection;
   import PMQConstants;
- 
+int acked= 0; 
   multiset sessions = (<>);
 
   PMQIdentity identity;
@@ -77,7 +77,7 @@
       return;
     }
 
-    conn->set_nonblocking_keep_callbacks();
+    set_conn_callbacks_nonblocking();
 
   }
 
@@ -113,7 +113,12 @@
 
   void handle_packet(Packet.PMQPacket packet)
   {
-    DEBUG(3, "handle_packet()\n");
+    DEBUG(3, "handle_packet(%O)\n", packet);
+if(object_program(packet) == Packet.PMQAck)
+{
+   acked++;
+write("acked: " + acked + "\n");
+}
     if(object_program(packet) == Packet.PMQGoodbye)
     {
       DEBUG(3, sprintf("%O: got Goodbye.\n", this));
@@ -129,10 +134,13 @@
         PMQCSession sess = get_session_by_id(m->headers["session"]);
         if(!sess) DEBUG(1, "Misdelivered message for session %O\n", 
                         m->headers);
-         Packet.PMQAck a = Packet.PMQAck();
-         a->set_id(m->headers["pmq-message-id"]);
-         send_packet(a, 1);
+        if(packet->get_ack())
+        {
+           Packet.PMQAck a = Packet.PMQAck();
+           a->set_id(m->headers["pmq-message-id"]);
+           send_packet(a, 1);
 //         set_network_mode(MODE_NONBLOCK);
+         }
          sess->deliver(m);
          return;
       }

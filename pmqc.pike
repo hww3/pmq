@@ -5,7 +5,7 @@ import PMQConstants;
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(0);  
+  DEBUG_LEVEL(10);  
   call_out(create_connection, 1);
   return -1; 
 }
@@ -31,7 +31,7 @@ void post()
 }
 void do_post()
 {
-  Public.Parser.XML2.Node n;
+//  Public.Parser.XML2.Node n;
 
   string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
   for(int i = 0; i < 500; i++)

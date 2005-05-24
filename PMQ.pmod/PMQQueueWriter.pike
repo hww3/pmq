@@ -43,17 +43,29 @@ int post(Message.PMQMessage m)
 
   p->set_pmqmessage(m);
 
+  if(0)
+//  if(session->get_connection()->config->get_parameter("ack_posts"))
+  {
+  
   Packet.PMQPacket r = session->get_connection()->send_packet_await_response(p);
 
-  if((object_program(r) != Packet.PMQAck) || 
-    r->get_id() != message_id)
-  {
-    session->get_connection()->handle_protocol_error();
-    return 0;
+  if((object_program(r) != Packet.PMQAck) ||  
+    r->get_id() != message_id) 
+  { 
+    session->get_connection()->handle_protocol_error(); 
+    return 0; 
+  } 
+ 
+  else return r->get_code(); 
   }
 
-  else return r->get_code();
-  
+  else
+  {
+    if(catch(session->get_connection()->send_packet(p)))
+      return 0;
+    else
+      return 1;
+  }   
 }
 
 string generate_message_id()

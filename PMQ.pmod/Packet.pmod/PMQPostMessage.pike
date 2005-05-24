@@ -8,6 +8,17 @@
   string message_body;
   mapping headers;
 
+  string _sprintf(mixed args)
+  {
+    return "PMQPostMessage(" + get_queue() + "," + get_message_id() + ")";
+  }
+
+string get_message_id()
+{
+  if(!_message) return "unknown";
+  else return _message->headers["PMQ-Message-ID"];
+}
+
   void create()
   {
     msg_data->hostname = gethostname();
@@ -25,6 +36,16 @@
   string get_data()
   {
     return encoded;
+  }
+
+  void set_ack(int flag)
+  {
+    this->msg_data->ack = flag;
+  }
+
+  int get_ack()
+  {
+    return this->msg_data->ack;
   }
 
   void set_pmqmessage(Message.PMQMessage m)
