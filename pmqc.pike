@@ -34,7 +34,7 @@ void do_post()
 //  Public.Parser.XML2.Node n;
 
   string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
-  for(int i = 0; i < 500; i++)
+  for(int i = 0; i < 3; i++)
   {
     object m = Message.PMQMessage();
     m->set_body(s);
