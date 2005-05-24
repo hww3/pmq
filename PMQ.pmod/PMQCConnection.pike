@@ -117,7 +117,6 @@ int acked= 0;
 if(object_program(packet) == Packet.PMQAck)
 {
    acked++;
-write("acked: " + acked + "\n");
 }
     if(object_program(packet) == Packet.PMQGoodbye)
     {
@@ -132,7 +131,7 @@ write("acked: " + acked + "\n");
 //        set_network_mode(MODE_BLOCK);
         Message.PMQMessage m = packet->get_pmqmessage();
         PMQCSession sess = get_session_by_id(m->headers["session"]);
-        if(!sess) DEBUG(1, "Misdelivered message for session %O\n", 
+        if(!sess) werror( "Misdelivered message for session %O\n", 
                         m->headers);
         if(packet->get_ack())
         {
@@ -140,9 +139,9 @@ write("acked: " + acked + "\n");
            a->set_id(m->headers["pmq-message-id"]);
            send_packet(a, 1);
 //         set_network_mode(MODE_NONBLOCK);
-         }
-         sess->deliver(m);
-         return;
+        }
+        sess->deliver(m);
+        return;
       }
 
       if(object_program(packet) == Packet.PMQSessionResponse)
