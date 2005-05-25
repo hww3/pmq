@@ -122,6 +122,7 @@ DEBUG(5, "Message: %s\n", (string)message);
       if(object_program(packet) == Packet.PMQQSubscribe)
       {
         set_network_mode(MODE_BLOCK);
+
         string queue_name = packet->get_queue();
 
         PMQSSession session = PMQSSession();
@@ -130,7 +131,7 @@ DEBUG(5, "Message: %s\n", (string)message);
         session->set_mode(packet->get_mode());
 
         Queue.PMQQueue q = manager->get_queue_by_name(queue_name);
-        if(!q)
+        if(!q && config->get("pmqd.queue.autocreate") == "1")
         {
           q = manager->new_queue(queue_name, "PMQQueue");
         }
@@ -153,6 +154,11 @@ DEBUG(5, "Message: %s\n", (string)message);
           {
             response->set_code(CODE_FAILURE);
           }
+        }
+        else
+        {
+            response->set_code(CODE_FAILURE);
+        }
           send_packet(response, 1);
           set_network_mode(MODE_NONBLOCK);
         }
