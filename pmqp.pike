@@ -13,7 +13,7 @@ int main(int argc, array argv)
 void create_connection()
 {
   write(sprintf("Connecting to pmqd... "));
-  client = PMQClient("pmq://buoy.riverweb.com:9999");
+  client = PMQClient("pmq://127.0.0.1:9999");
   client->connect();
   call_out(run, 0);
   return;  
