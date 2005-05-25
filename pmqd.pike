@@ -1,4 +1,5 @@
 Stdio.Port port = Stdio.Port();;
+import PMQ;
 PMQProperties config;
 PMQQueueManager manager = PMQQueueManager();
 import PMQConstants;

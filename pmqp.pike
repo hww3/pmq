@@ -1,7 +1,8 @@
+import PMQ;
+import PMQConstants;
 PMQQueueReader reader;
 PMQProperties config;
 PMQClient client;
-import PMQConstants;
 
 int main(int argc, array argv)
 {

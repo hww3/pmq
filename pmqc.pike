@@ -1,3 +1,4 @@
+import PMQ;
 PMQQueueReader reader;
 PMQProperties config;
 PMQClient client;
@@ -31,13 +32,16 @@ void post()
 }
 void do_post()
 {
-//  Public.Parser.XML2.Node n;
-
   string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
+
+  do
+  {
+    Stdio.stdin.gets();
     object m = Message.PMQMessage();
     m->set_body(s);
     reader->post(m);
   write("wrote message.\n");
-call_out(do_post, 5);
+  } while(1);
+
   exit(0);
 }
