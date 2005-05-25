@@ -1,3 +1,4 @@
+import PMQ;
 string name;
 
 import PMQConstants;

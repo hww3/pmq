@@ -1,3 +1,4 @@
+  import PMQ;
   inherit PMQConnection;
   import PMQConstants;
   

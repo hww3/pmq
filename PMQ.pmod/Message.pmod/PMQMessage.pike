@@ -1,3 +1,4 @@
+import PMQ;
 string _type = "PMQMessage";
 
 string message;

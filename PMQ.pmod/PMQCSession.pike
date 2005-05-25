@@ -1,3 +1,4 @@
+import PMQ;
 import PMQConstants;
 
 string session_id;

@@ -1,3 +1,4 @@
+  import PMQ;
   import PMQConstants;
 
   constant NETWORK_STATE_START = 0;
@@ -248,8 +249,9 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
     DEBUG(5, "parse_packet: created a packet %O\n", packet);
 
-    if(catch(packet->parse(packet_payload)))
-    {
+    packet->parse(packet_payload);
+ if(0)   
+ {
       DEBUG(3, "got an error parsing packet.\n");
       handle_protocol_error();
       return;

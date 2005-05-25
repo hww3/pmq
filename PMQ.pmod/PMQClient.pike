@@ -4,6 +4,7 @@
  *  Copyright (c) 2005 Bill Welliver <bill@welliver.org>
  */
 
+import PMQ;
 import PMQConstants;
 
 PMQCConnection conn;

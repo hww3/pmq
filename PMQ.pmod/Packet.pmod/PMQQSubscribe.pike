@@ -1,4 +1,4 @@
-  inherit .PMQPacket;
+  import PMQ; inherit .PMQPacket;
   string type = "QSUBSCRIBE";
 
   string encoded = "";

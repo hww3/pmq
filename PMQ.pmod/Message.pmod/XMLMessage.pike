@@ -1,3 +1,4 @@
+import PMQ;
 inherit .PMQMessage;
 
 string _type = "XMLMessage";

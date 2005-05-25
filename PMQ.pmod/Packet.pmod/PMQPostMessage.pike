@@ -1,5 +1,6 @@
+  import PMQ; 
+  import PMQ.PMQConstants;
   inherit .PMQPacket;
-  import PMQConstants;
 
   string type = "POSTMESSAGE";
 
@@ -16,7 +17,7 @@
 string get_message_id()
 {
   if(!_message) return "unknown";
-  else return _message->headers["PMQ-Message-ID"];
+  else return _message->get_header("pmq-message-id");
 }
 
   void create()
@@ -82,7 +83,7 @@ string get_message_id()
   {
     ::parse(payload);
     DEBUG(2, "decoding message of type " + msg_data->message_type + "\n");
-    program p = master()->resolv("Message." + msg_data->message_type);
+    program p = master()->resolv("PMQ.Message." + msg_data->message_type);
     
     if(!p)
       error("Unable to decode message of type " + msg_data->message_type + "\n");

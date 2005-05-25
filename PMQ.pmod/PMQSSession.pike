@@ -1,3 +1,4 @@
+import PMQ;
 string session_id;
 int mode;
 PMQSConnection conn;
@@ -15,7 +16,7 @@ string _sprintf(mixed ... args)
 
 int send_message(Message.PMQMessage message)
 {
-  return get_connection()->send_message(message, this);
+  return get_connection()->send_message(message, this, 0);
 }
 
 void set_session_id(string session_id)

@@ -1,3 +1,4 @@
+import PMQ;
 import PMQConstants;
 
 ADT.Queue incoming = ADT.Queue();
@@ -54,7 +55,7 @@ int post(Message.PMQMessage m)
   p->set_queue(get_queue());
   p->set_session(session->get_session_id());
   
-  m->set_header("PMQ-Message-Id", message_id);
+  m->set_header("pmq-message-id", message_id);
 
   p->set_pmqmessage(m);
 

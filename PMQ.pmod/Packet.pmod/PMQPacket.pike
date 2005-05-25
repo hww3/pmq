@@ -1,3 +1,5 @@
+  import PMQ;
+
   string type = "UNKNOWN";
   string message;
   mapping msg_data = ([]);

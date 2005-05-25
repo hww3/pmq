@@ -1,4 +1,4 @@
-  inherit .PMQPacket;
+  import PMQ; inherit .PMQPacket;
   string type = "BADPACKET";
 
   string message = "bad packet.\n";

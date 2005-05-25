@@ -1,4 +1,4 @@
-  inherit .PMQPacket;
+  import PMQ; inherit .PMQPacket;
   string type = "GOODBYE";
 
   string message = "it was nice chatting.\n";

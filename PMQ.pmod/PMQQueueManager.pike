@@ -1,3 +1,4 @@
+import PMQ;
 mapping queues = ([]);
 
 void create()
@@ -13,7 +14,7 @@ object get_queue_by_name(string name)
 object new_queue(string name, string type)
 {
   if(queues[name]) error("Queue " + name + " already exists.\n");
-  object q = master()->resolv("Queue." + type)(name);
+  object q = master()->resolv("PMQ.Queue." + type)(name);
   q->start();
   queues[name] = q;
   return q;

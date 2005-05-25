@@ -1,4 +1,4 @@
-  inherit .PMQPacket;
+  import PMQ; inherit .PMQPacket;
   string type = "DELIVERMESSAGE";
 
   string encoded = "";
@@ -53,8 +53,7 @@
   void parse(string payload)
   {
     ::parse(payload);
-write("decoding " + msg_data->message_type  + "\n");
-   program p = master()->resolv("Message." + msg_data->message_type);
+    program p = master()->resolv("PMQ.Message." + msg_data->message_type);
 
     if(!p)
       error("Unable to decode message of type " + msg_data->message_type + "\n");
