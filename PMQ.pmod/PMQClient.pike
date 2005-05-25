@@ -73,7 +73,7 @@ private mapping register_packet()
     object d = c();
     if(d->type)
     {
-     write("startup: registering packet " + d->type + "\n");
+     DEBUG(2, "startup: registering packet " + d->type + "\n");
      packets[d->type] = c;
     }
   }
@@ -87,6 +87,8 @@ private array decode_url(string url)
 
 PMQQueueReader get_queue_reader(string queue)
 {
+  if(!conn || !conn->is_open())
+    error("No connection.\n");
   Packet.PMQQSubscribe p = Packet.PMQQSubscribe();
   string sess;
 
@@ -119,6 +121,9 @@ DEBUG(1, "setting session id to %s\n", sess);
 
 PMQQueueWriter get_queue_writer(string queue)
 {
+  if(!conn || !conn->is_open())
+    error("No connection.\n");
+
   Packet.PMQQSubscribe p = Packet.PMQQSubscribe();
   string sess;
 

@@ -42,6 +42,11 @@
       return "PMQConnection(" + addr + ", " + connection_state + ")";
   }
 
+  int is_open()
+  { 
+    return conn->is_open();
+  }
+
   void run_backend()
   {
     do

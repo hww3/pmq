@@ -63,7 +63,7 @@ Message.PMQMessage read(int|float|void wait)
   if(!session)
   {
     error("No session.\n");
-    return;
+    return 0;
   }
 
   // otherwise, we need to wait for one.
@@ -76,17 +76,25 @@ Message.PMQMessage read(int|float|void wait)
 
   if(r)
   {
-    Message.PMQMessage m = incoming_queue->read();
-    key = 0;
-    incoming_wait = 0;
-    return m;
+    // an empty queue after getting here can mean only one thing...
+    if(!incoming_queue->is_empty()) 
+    {
+      Message.PMQMessage m = incoming_queue->read();
+      key = 0;
+      incoming_wait = 0;
+      return m;
+    }
+    else
+    {
+      error("No session.\n");
+      return 0;
+    }
   }
  
   else
   {
     incoming_wait = 0;
     key = 0;
-    error("No session.\n");
     return 0;
   }
 }
