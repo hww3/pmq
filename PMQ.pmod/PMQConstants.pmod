@@ -7,6 +7,9 @@ constant CODE_FAILURE = 0;
 constant MODE_BLOCK = 250;
 constant MODE_NONBLOCK = 251;
 
+constant TYPE_PTP = 1;
+constant TYPE_TOPIC = 2;
+
 int debug_level = 10;
 
 void DEBUG_LEVEL(int level)
