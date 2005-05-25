@@ -19,6 +19,16 @@
     return sizeof(encoded);
   }
 
+  PMQIdentity get_identity()
+  {
+    return this->msg_data->identity;
+  }
+
+  void set_identity(PMQIdentity identity) 
+  {
+    this->msg_identity = identity;
+  }
+
   string get_data()
   {
     return encoded;
