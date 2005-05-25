@@ -52,7 +52,7 @@ int connect()
 
   [host, port] = decode_url(url);
 
-  werror("%s, %s, %d\n", url, host, port);
+  // werror("%s, %s, %d\n", url, host, port);
 
   if(!(host && port))
     return 0;

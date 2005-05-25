@@ -62,16 +62,17 @@
     this->config = config;
     this->packets = packets;
     network_state = NETWORK_STATE_LOOKSTART;
-      backend = Pike.Backend();
-      handler = Thread.Thread(run_backend);
 
     if(get_mode() == MODE_CLIENT)
     {
 //      DEBUG(2, "starting client backend thread\n");
+      backend = Pike.Backend();
       backend->call_out(conn->set_blocking, 0);
+      handler = Thread.Thread(run_backend);
     }
     else 
     {
+      backend = Pike.DefaultBackend;
       set_conn_callbacks_nonblocking();
     }
 
@@ -151,11 +152,16 @@
 
   void remote_read(string id, string data)
   {
-    int n, my_look_len;
-    string packet_data="";
     read_buffer+=data;
 
-//    DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
+    DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
+    read_loop();
+  }
+
+  void read_loop()
+  {
+    int n, my_look_len;
+    string packet_data="";
 
     if(network_state == NETWORK_STATE_LOOKCOMPLETE)
     {
@@ -180,7 +186,7 @@
       look_len = 0;
       
       if(sizeof(read_buffer))                
-        backend->call_out(remote_read, 0, id, "");
+        backend->call_out(read_loop, 0);
       return;
     }
 
@@ -201,7 +207,7 @@
         look_len = my_look_len;
         packet_data = "";
         network_state = NETWORK_STATE_LOOKCOMPLETE;
-        remote_read(id, "");
+        read_loop();
       }
     } 
   } 
@@ -326,8 +332,8 @@ DEBUG(2, "catching up with queued packets.\n");
       conn->set_blocking();
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);
-      dta = conn->read(7);
-//      dta = timeout_read(conn, 7, 5);
+//      dta = conn->read(7);
+      dta = timeout_read(conn, 7, 5);
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)
       {
@@ -341,8 +347,8 @@ DEBUG(5, "Read from conn: %O\n", dta);
       if(!n) error("unexpected response from server.\n");
       if(sizeof(dta) < my_look_len)
       {
-//        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
-        dta = dta + conn->read(my_look_len-sizeof(dta));
+        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
+//        dta = dta + conn->read(my_look_len-sizeof(dta));
         DEBUG(5, "Read from conn: %O\n", dta);
       }
       if(sizeof(dta) < my_look_len)
@@ -352,7 +358,8 @@ DEBUG(5, "Read from conn: %O\n", dta);
        }
       else if(sizeof(dta) > my_look_len)
       {
-        backend->call_out(remote_read, 0, "", dta[my_look_len..]);
+        read_buffer += dta[my_look_len..];
+        backend->call_out(read_loop, 0);
       }
 
        Packet.PMQPacket p = parse_packet(dta, 1);

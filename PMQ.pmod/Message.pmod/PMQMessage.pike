@@ -9,6 +9,11 @@ void create()
 
 }
 
+string _sprintf(mixed ... args)
+{
+  return "PMQ.Message.PMQMessage(" + get_header("pmq-message-id") + ")";
+}
+
 string _typeof()
 {
   return _type;
