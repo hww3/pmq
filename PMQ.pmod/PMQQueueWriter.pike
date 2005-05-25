@@ -20,6 +20,16 @@ void set_session(PMQCSession session)
   this->session = session;
 }
 
+void session_abort(PMQCSession s)
+{
+  write("session abort\n");
+  // we should only allow aborting from the same session we're using.
+  if(session == s)
+  {
+    session = 0;
+  }
+}
+
 string get_queue()
 {
   return this->queue;
@@ -33,6 +43,11 @@ void set_queue(string queue)
 
 int post(Message.PMQMessage m)
 {
+  if(!this->session)
+  {
+    error("No session.\n");
+    return 0;
+  }
   Packet.PMQPostMessage p = Packet.PMQPostMessage();
   string message_id = generate_message_id();
 

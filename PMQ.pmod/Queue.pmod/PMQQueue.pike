@@ -41,16 +41,15 @@ int post_message(Message.PMQMessage message, PMQSSession session)
   if(writers[session])
   {
     q->write(message);
-    return 1;
   }
   else return 0;
-  process_queue();
+  call_out(process_queue, 0);
+  return 1;
 }
 
 void process_queue()
 {
   if(processing) return;
-
   if(sizeof(listeners) && !q->is_empty())
   {
     processing = 1;

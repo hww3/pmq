@@ -17,6 +17,11 @@ void set_connection(PMQCConnection conn)
   if(conn)
     conn->add_session(this);
   this->conn = conn;
+
+  if(! this->conn)
+  {
+    destruct();
+  }
 }
 
 PMQCConnection get_connection()
@@ -50,4 +55,8 @@ void set_listener(PMQQueueReader r)
 void destroy()
 {
   DEBUG(4, "PMQCSession(%s)->destroy()\n", get_session_id());
+  foreach(indices(listeners + writers), object o)
+    o->session_abort(this);
+
+  
 }

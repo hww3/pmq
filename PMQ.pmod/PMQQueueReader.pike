@@ -14,6 +14,20 @@ void create()
   incoming_queue = ADT.Queue();
 }
 
+void session_abort(PMQCSession s)
+{
+  write("session abort\n");
+  // we should only allow aborting from the same session we're using.
+  if(session == s)
+  {
+    session = 0;
+    if(incoming_wait)
+    {
+      be->call_out(lambda(){ return 0;}, 0);
+    }
+  }
+}
+
 void deliver(Message.PMQMessage m)
 {
   DEBUG(1, "PMQQueueReader: incoming %s message from %s, %s\n", 
@@ -25,7 +39,6 @@ void deliver(Message.PMQMessage m)
   }
   if(incoming_wait)
   {
-write("putting an item in the queue for the backend.\n");
     be->call_out(incoming_queue->write, 0, m);
   }
   else
@@ -41,11 +54,16 @@ Message.PMQMessage read(int|float|void wait)
   // if messages are waiting for us to read, just get one.
   if(!incoming_queue->is_empty())
   {
-   write("havawaitingmessage\n");
     Message.PMQMessage m = incoming_queue->read();
     incoming_wait = 0;
     key = 0;
     return m;
+  }
+
+  if(!session)
+  {
+    error("No session.\n");
+    return;
   }
 
   // otherwise, we need to wait for one.
@@ -66,9 +84,9 @@ Message.PMQMessage read(int|float|void wait)
  
   else
   {
-write("didn'tgetawaitingmessage\n");
     incoming_wait = 0;
     key = 0;
+    error("No session.\n");
     return 0;
   }
 }
