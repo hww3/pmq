@@ -9,7 +9,7 @@ mapping packets = ([]);
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(10);
+  DEBUG_LEVEL(1);
   read_config();
   setup_port();
   register_packet();

@@ -6,7 +6,7 @@ import PMQConstants;
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(10);  
+  DEBUG_LEVEL(1);  
   call_out(create_connection, 1);
   return -1; 
 }
@@ -33,15 +33,16 @@ void post()
 void do_post()
 {
   string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
-
+int i = 0;
   do
   {
-    Stdio.stdin.gets();
+//    Stdio.stdin.gets();
     object m = Message.PMQMessage();
     m->set_body(s);
     reader->post(m);
   write("wrote message.\n");
-  } while(1);
+i++;
+  } while(i<1000);
 
   exit(0);
 }

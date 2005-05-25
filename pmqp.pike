@@ -22,8 +22,11 @@ void create_connection()
 
 void run()
 {
+
+  Stdio.stdin.gets();
   reader = client->get_queue_reader("wunderbar");
 
+write("starting reader...\n");
   do
   {
     Message.PMQMessage m = reader->read();
