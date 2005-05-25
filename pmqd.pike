@@ -13,7 +13,15 @@ int main(int argc, array argv)
   setup_port();
   register_packet();
   call_out(report_connection, 1);
+  signal(signum("INT"), quit);
   return -1; 
+}
+
+void quit()
+{
+  foreach((array)connections;;PMQConnection c)
+    destruct(c);
+  exit(0);
 }
 
 void report_connection()

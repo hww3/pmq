@@ -362,6 +362,7 @@ DEBUG(5, "Read from conn: %O\n", dta);
 
   void destroy()
   {
+write("destory");
     conn->close();
     conn->set_read_callback(0);
     DEBUG(4, "PMQConnection: destroy!\n");
