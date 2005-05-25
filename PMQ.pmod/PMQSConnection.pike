@@ -257,8 +257,8 @@ DEBUG(5, "Message: %s\n", (string)message);
 
   void handle_auth(Packet.PMQCHello packet)
   {
-    write("handle_auth\n");
     identity = packet->get_identity();
+    write(sprintf("handle_auth: %O\n", identity));
 
     backend->call_out(con_running, 0);
   }
