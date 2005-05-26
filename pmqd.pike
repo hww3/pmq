@@ -33,6 +33,9 @@ void report_connection()
 
 void read_config()
 {
+  config = PMQ.PMQProperties();
+
+  config->set("pmqd.queue.autocreate", "1");
   return;
 }
 
