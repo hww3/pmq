@@ -13,7 +13,8 @@
   constant MODE_CLIENT = 1;
   constant MODE_SERVER = 2;
 
-  ADT.Queue net_queue = ADT.Queue();
+  ADT.Queue out_net_queue = ADT.Queue();
+  ADT.Queue in_net_queue = ADT.Queue();
   object manager;
   Stdio.File conn;
   Pike.Backend backend;
@@ -155,7 +156,8 @@
     read_buffer+=data;
 
     DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
-    read_loop();
+    if(net_mode == MODE_NONBLOCK)
+      read_loop();
   }
 
   void read_loop()
@@ -273,7 +275,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     }
   }
 
-  void handle_packet(Packet.PMQPacket packet)
+  void handle_packet(Packet.PMQPacket packet, int|void immediate)
   {
     DEBUG(4, sprintf("%O->handle_packet(%O)\n", this, packet));
   }
@@ -286,7 +288,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
       conn->close();
     }
     if(net_mode == MODE_BLOCK && ! immediate)
-      net_queue->write(packet);
+      out_net_queue->write(packet);
     else if(this->conn)
     {
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
@@ -300,23 +302,36 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
   {
     if(mode == MODE_NONBLOCK)
     {
-      net_mode = MODE_NONBLOCK;
-      if(!net_queue->is_empty())
+      if(!out_net_queue->is_empty())
       {
         do
         {
-DEBUG(2, "catching up with queued packets.\n");
-          send_packet(net_queue->read());
+DEBUG(2, "catching up with queued outgoing packets.\n");
+          send_packet(out_net_queue->read(), 1);
         }
-        while(!net_queue->is_empty());
+        while(!out_net_queue->is_empty());
       }
+
+      if(!in_net_queue->is_empty())
+      {
+        do
+        {
+DEBUG(2, "catching up with queued incoming packets.\n");
+          handle_packet(out_net_queue->read(), 1);
+        }
+        while(!in_net_queue->is_empty());
+        if(sizeof(read_buffer))
+          read_loop();
+      }
+      net_mode = MODE_NONBLOCK;
 
     }
 
     else net_mode = MODE_BLOCK;
   }
 
-  Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet)
+  Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
+          int|void keep)
   {
      set_network_mode(MODE_BLOCK);
     int n, my_look_len;
@@ -331,14 +346,14 @@ DEBUG(2, "catching up with queued packets.\n");
       string dta;
       conn->set_blocking();
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
-      send_packet(packet, 1);
-//      dta = conn->read(7);
+      send_packet(packet, 1);//      dta = conn->read(7);
       dta = timeout_read(conn, 7, 5);
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)
       {
         DEBUG(2, "unexpected response from remote: %O.\n", dta);
-     set_network_mode(MODE_NONBLOCK);
+     if(!keep)
+       set_network_mode(MODE_NONBLOCK);
         return 0;
       }
       // PMQ plus payload len must be at the beginning of our buffer.
@@ -353,17 +368,19 @@ DEBUG(5, "Read from conn: %O\n", dta);
       }
       if(sizeof(dta) < my_look_len)
        {
-     set_network_mode(MODE_NONBLOCK);
-        error("server shorted us!\n");
+         if(!keep)
+           set_network_mode(MODE_NONBLOCK);
+         error("server shorted us!\n");
        }
       else if(sizeof(dta) > my_look_len)
       {
         read_buffer += dta[my_look_len..];
-        backend->call_out(read_loop, 0);
+//        backend->call_out(read_loop, 0);
       }
 
-       Packet.PMQPacket p = parse_packet(dta, 1);
-     set_network_mode(MODE_NONBLOCK);
+       Packet.PMQPacket p = parse_packet(dta[0..my_look_len-1], 1);
+     if(!keep)
+       set_network_mode(MODE_NONBLOCK);
 
        if(!p) error("couldn't parse the packet!\n");      
        set_conn_callbacks_nonblocking();

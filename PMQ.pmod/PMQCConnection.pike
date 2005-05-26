@@ -112,9 +112,15 @@ int acked= 0;
       sessions[s] = 0;
   }
 
-  void handle_packet(Packet.PMQPacket packet)
+  void handle_packet(Packet.PMQPacket packet, int|void immediate)
   {
     DEBUG(3, "handle_packet(%O)\n", packet);
+    if(net_mode == MODE_BLOCK && !immediate)
+    {
+    DEBUG(3, "handle_packet(%O) deferring packet for later.\n", packet);
+      in_net_queue->write(packet);
+      return;
+    }
 if(object_program(packet) == Packet.PMQAck)
 {
    acked++;

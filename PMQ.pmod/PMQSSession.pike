@@ -14,9 +14,9 @@ string _sprintf(mixed ... args)
   return "PMQSSession(" + get_session_id() + ")";
 }
 
-int send_message(Message.PMQMessage message)
+int send_message(Message.PMQMessage message, int ack)
 {
-  return get_connection()->send_message(message, this, 0);
+  return get_connection()->send_message(message, this, ack);
 }
 
 void set_session_id(string session_id)

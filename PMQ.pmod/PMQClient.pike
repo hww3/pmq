@@ -98,8 +98,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   p->set_queue(queue);
   p->set_mode(MODE_LISTEN);
   p->set_session(sess);
-
-  Packet.PMQPacket resp = conn->send_packet_await_response(p);  
+  Packet.PMQPacket resp = conn->send_packet_await_response(p, 1);  
 
   if(object_program(resp) != Packet.PMQSessionResponse)
     error("got invalid response to subscription request: %O\n", resp);
@@ -115,6 +114,40 @@ DEBUG(1, "setting session id to %s\n", sess);
   s->set_session_id(sess);
 
   r->set_queue(queue);
+  r->set_session(s);
+  conn->set_network_mode(MODE_NONBLOCK);
+  return r;
+}
+
+PMQTopicReader get_topic_reader(string topic)
+{
+  if(!conn || !conn->is_open())
+    error("No connection.\n");
+  Packet.PMQTSubscribe p = Packet.PMQTSubscribe();
+  string sess;
+
+  sess = generate_session_id();
+DEBUG(1, "setting session id to %s\n", sess);
+  p->set_topic(topic);
+  p->set_mode(MODE_LISTEN);
+  p->set_session(sess);
+
+  Packet.PMQPacket resp = conn->send_packet_await_response(p);  
+
+  if(object_program(resp) != Packet.PMQSessionResponse)
+    error("got invalid response to subscription request: %O\n", resp);
+
+  if(resp->get_session() != sess)
+    error("wrong sessionid!\n");
+  if(resp->get_code() != CODE_SUCCESS)
+    error("subscribe failed.\n");
+
+  PMQTopicReader r = PMQTopicReader();
+  PMQCSession s = PMQCSession();
+  s->set_connection(conn);
+  s->set_session_id(sess);
+
+  r->set_topic(topic);
   r->set_session(s);
 
   return r;
@@ -144,12 +177,47 @@ DEBUG(1, "setting session id to %s\n", sess);
   if(resp->get_code() != CODE_SUCCESS)
     error("subscribe failed.\n");
 
-  PMQQueueReader r = PMQQueueWriter();
+  PMQQueueWriter r = PMQQueueWriter();
   PMQCSession s = PMQCSession();
   s->set_connection(conn);
   s->set_session_id(sess);
 
   r->set_queue(queue);
+  r->set_session(s);
+
+  return r;
+}
+
+PMQTopicWriter get_topic_writer(string topic)
+{
+  if(!conn || !conn->is_open())
+    error("No connection.\n");
+
+  Packet.PMQTSubscribe p = Packet.PMQTSubscribe();
+  string sess;
+
+  sess = generate_session_id();
+DEBUG(1, "setting session id to %s\n", sess);
+  p->set_topic(topic);
+  p->set_mode(MODE_WRITE);
+  p->set_session(sess);
+
+  Packet.PMQPacket resp = conn->send_packet_await_response(p);  
+
+  if(object_program(resp) != Packet.PMQSessionResponse)
+    error("got invalid response to subscription request.\n");
+
+  if(resp->get_session() != sess)
+    error("wrong sessionid!\n");
+  if(resp->get_code() != CODE_SUCCESS)
+    error("subscribe failed.\n");
+
+  PMQTopicWriter r = PMQTopicWriter();
+  PMQCSession s = PMQCSession();
+  s->set_connection(conn);
+  s->set_session_id(sess);
+
+  r->set_topic(topic);
   r->set_session(s);
 
   return r;

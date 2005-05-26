@@ -11,7 +11,7 @@
 
   string _sprintf(mixed args)
   {
-    return "PMQPostMessage(" + get_queue() + "," + get_message_id() + ")";
+    return "PMQPostMessage(" + get_message_id() + ")";
   }
 
 string get_message_id()
@@ -57,16 +57,6 @@ string get_message_id()
   Message.PMQMessage get_pmqmessage()
   {
     return _message;
-  }
-
-  void set_queue(string queue)
-  {
-    this->msg_data->queue = queue;
-  }
-
-  string get_queue()
-  {
-    return this->msg_data->queue;
   }
 
   string get_session()

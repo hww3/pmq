@@ -103,7 +103,7 @@ DEBUG(5, "Message: %s\n", (string)message);
   // this is the state machine for received packets. 
   // this is where it all happens.
   //
-  void handle_packet(Packet.PMQPacket packet)
+  void handle_packet(Packet.PMQPacket packet, int|void immediate)
   {
     // we can get a goodbye at any time.
     if(object_program(packet) == Packet.PMQGoodbye)
@@ -119,30 +119,48 @@ DEBUG(5, "Message: %s\n", (string)message);
 
     else if(connection_state == CONNECTION_RUNNING)
     {
-      if(object_program(packet) == Packet.PMQQSubscribe)
+      if(object_program(packet) == Packet.PMQQSubscribe || 
+         object_program(packet) == Packet.PMQTSubscribe)
       {
         set_network_mode(MODE_BLOCK);
+        int type = 0;
+        if(object_program(packet) == Packet.PMQTSubscribe)
+          type = 1;
 
-        string queue_name = packet->get_queue();
+        string queue_name;
+        if(type)
+          queue_name = packet->get_topic();
+        else queue_name = packet->get_queue();
 
         PMQSSession session = PMQSSession();
         session->set_session_id(packet->get_session());
         session->set_connection(this);
         session->set_mode(packet->get_mode());
 
-        Queue.PMQQueue q = manager->get_queue_by_name(queue_name);
-        if(!q && config->get("pmqd.queue.autocreate") == "1")
+        Queue.PMQQueue q;
+        if(type) q = manager->get_topic_by_name(queue_name);
+        else q = manager->get_queue_by_name(queue_name);
+
+        if(!q && type && config->get("pmqd.topic.autocreate") == "1")
         {
-          q = manager->new_queue(queue_name, "PMQQueue");
+          q = manager->new_topic(queue_name, "PMQSimpleTopic");
+        }
+
+        if(!q && !type && config->get("pmqd.queue.autocreate") == "1")
+        {
+          q = manager->new_queue(queue_name, "PMQSimpleQueue");
         }
 
         Packet.PMQSessionResponse response = Packet.PMQSessionResponse();
         response->set_session(session->get_session_id());
 
+        int res = 0;
 
         if(q)
         {
-          if(q->subscribe(session))
+          res = q->subscribe(session);
+
+          if(res == CODE_SUCCESS)
           {
             if(session->get_mode() == MODE_LISTEN)
               listen_sessions[session] = 1;
@@ -152,29 +170,38 @@ DEBUG(5, "Message: %s\n", (string)message);
           }
           else
           {
-            response->set_code(CODE_FAILURE);
+            response->set_code(res);
           }
         }
         else
         {
-            response->set_code(CODE_FAILURE);
+            response->set_code(CODE_NOTFOUND);
         }
           send_packet(response, 1);
           set_network_mode(MODE_NONBLOCK);
-        }
       }
 
-      if(object_program(packet) == Packet.PMQQUnsubscribe)
+      if(object_program(packet) == Packet.PMQQUnsubscribe ||
+         object_program(packet) == Packet.PMQTUnsubscribe)
       {
-        string queue_name = packet->get_queue();
+        int type = 0;
+        if(object_program(packet) == Packet.PMQTSubscribe)
+          type = 1;
+
+        string queue_name;
+        if(type)
+          queue_name = packet->get_topic();
+        else queue_name = packet->get_queue();
 
         PMQSSession s = get_session_by_id(packet->get_session(), packet->get_mode());
 
-        Queue.PMQQueue q = manager->get_queue_by_name(queue_name);
+        Queue.PMQQueue q;
+        if(type) q = manager->get_topic_by_name(queue_name);
+        else q = manager->get_queue_by_name(queue_name);
 
         if(q)
         {
-          if(q->unsubscribe(s))
+          if(q->unsubscribe(s) == CODE_SUCCESS)
           {
             if(s->get_mode() == MODE_LISTEN)
               listen_sessions[s] = 0;
@@ -190,16 +217,12 @@ DEBUG(5, "Message: %s\n", (string)message);
         if(packet->get_ack())
           set_network_mode(MODE_BLOCK);
 
-        string queue_name = packet->get_queue();
         string sid = packet->get_session();
-        Queue.PMQQueue q = manager->get_queue_by_name(queue_name);
+        PMQSSession s = get_session_by_id(sid, MODE_WRITE);
 
-        if(!q)
-        {
-          q = manager->new_queue(queue_name, "PMQQueue");
-        }
+        Queue.PMQQueue q = s->get_queue();
 
-          Message.PMQMessage m = packet->get_pmqmessage();
+        Message.PMQMessage m = packet->get_pmqmessage();
 
         if(packet->get_ack())
         {
@@ -210,8 +233,6 @@ DEBUG(5, "Message: %s\n", (string)message);
 
         if(q)
         {
-          PMQSSession s = get_session_by_id(sid, MODE_WRITE);
-           
           int pr = q->post_message(m, s);
 
           if(packet->get_ack())
