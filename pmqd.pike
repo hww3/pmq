@@ -36,6 +36,7 @@ void read_config()
   config = PMQ.PMQProperties();
 
   config->set("pmqd.queue.autocreate", "1");
+  config->set("pmqd.topic.autocreate", "1");
   return;
 }
 

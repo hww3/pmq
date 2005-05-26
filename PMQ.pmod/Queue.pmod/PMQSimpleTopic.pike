@@ -10,7 +10,7 @@ int ack = 0;
 int processing = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
-
+int i = 0 ;
 void create(string name)
 {
   this->name = name;
@@ -57,11 +57,12 @@ void process_queue()
     processing = 1;
     do
     {
+i++;
       Message.PMQMessage m = q->peek();
-
+write("i: " + i + "\n");
       foreach(indices(listeners);; PMQSSession listener)
       {
-        if(listener->send_message(m, listener, ack)) q->read();
+        if(listener->send_message(m, ack)) q->read();
         else
         {
            DEBUG(1, "%O: Delivery failed; aborting processing.\n", this);

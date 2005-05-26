@@ -1,5 +1,5 @@
 import PMQ;
-PMQQueueReader reader;
+PMQReader reader;
 PMQProperties config;
 PMQClient client;
 import PMQConstants;
@@ -22,7 +22,7 @@ void create_connection()
 
 void run()
 {
-  reader = client->get_queue_writer("wunderbar");
+  reader = client->get_topic_writer("wunderbar");
   call_out(post, 0);
 }
 
@@ -31,8 +31,7 @@ void post()
  gauge(do_post());
 }
 void do_post()
-{
-  string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
+{  string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
 int i = 0;
   do
   {

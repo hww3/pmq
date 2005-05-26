@@ -1,6 +1,6 @@
 import PMQ;
 import PMQConstants;
-PMQQueueReader reader;
+PMQReader reader;
 PMQProperties config;
 PMQClient client;
 
@@ -24,13 +24,16 @@ void run()
 {
 
   Stdio.stdin.gets();
-  reader = client->get_queue_reader("wunderbar");
-
+  reader = client->get_topic_reader("wunderbar");
+int i = 0;
 write("starting reader...\n");
   do
   {
     Message.PMQMessage m = reader->read();
-    werror("reader got a message: %O\n", m);
+//    werror("reader got a message: %O\n", m);
+i++;
+write("msgs: " + i + "\n");
   }
   while(1);
 }
+

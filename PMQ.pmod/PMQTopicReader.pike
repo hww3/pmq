@@ -1,7 +1,7 @@
 import PMQ;
 inherit PMQReader;
 
-private string topic;
+string topic;
 
 void set_topic(string topic)
 {
