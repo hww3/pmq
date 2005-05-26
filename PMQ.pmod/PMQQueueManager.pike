@@ -14,7 +14,7 @@ object get_queue_by_name(string name)
 
 object get_topic_by_name(string name)
 {
-  return topic[name];
+  return topics[name];
 }
 
 object new_queue(string name, string type)
