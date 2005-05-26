@@ -347,7 +347,8 @@ DEBUG(2, "catching up with queued incoming packets.\n");
       conn->set_blocking();
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);//      dta = conn->read(7);
-      dta = timeout_read(conn, 7, 5);
+//      dta = timeout_read(conn, 7, 5);
+dta = conn->read(7);
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)
       {
@@ -362,8 +363,8 @@ DEBUG(5, "Read from conn: %O\n", dta);
       if(!n) error("unexpected response from server.\n");
       if(sizeof(dta) < my_look_len)
       {
-        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
-//        dta = dta + conn->read(my_look_len-sizeof(dta));
+//        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
+        dta = dta + conn->read(my_look_len-sizeof(dta));
         DEBUG(5, "Read from conn: %O\n", dta);
       }
       if(sizeof(dta) < my_look_len)
