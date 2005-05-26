@@ -302,6 +302,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
   void set_network_mode(int mode)
   {
+werror("set_network_mode(%O)\n", mode);
     if(mode == MODE_NONBLOCK)
     {
       if(!out_net_queue->is_empty())
@@ -360,14 +361,25 @@ DEBUG(5, "Read from conn: %O\n", dta);
       {
         DEBUG(2, "unexpected response from remote: %O.\n", dta);
         DEBUG(2, "error: %O.\n", conn->errno());
+
+     set_conn_callbacks_nonblocking();
      if(!keep)
+     {
        set_network_mode(MODE_NONBLOCK);
-        return 0;
+       
+       return 0;
+      }
       }
       // PMQ plus payload len must be at the beginning of our buffer.
       n = sscanf(dta, "PMQ%4c%s", my_look_len, dta);
    
-      if(!n) error("unexpected response from server.\n");
+      if(!n)
+      {
+        if(!keep)
+          set_network_mode(MODE_NONBLOCK);
+        set_conn_callbacks_nonblocking();
+        error("unexpected response from server.\n");
+      }
       if(sizeof(dta) < my_look_len)
       {
 //        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
@@ -378,11 +390,13 @@ DEBUG(5, "Read from conn: %O\n", dta);
        {
          if(!keep)
            set_network_mode(MODE_NONBLOCK);
+         set_conn_callbacks_nonblocking();
          error("server shorted us!\n");
        }
       else if(sizeof(dta) > my_look_len)
       {
         read_buffer += dta[my_look_len..];
+set_conn_callbacks_nonblocking();
 //        backend->call_out(read_loop, 0);
       }
 
