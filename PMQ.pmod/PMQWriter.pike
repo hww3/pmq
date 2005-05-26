@@ -21,7 +21,6 @@ void set_session(PMQCSession session)
 
 void session_abort(PMQCSession s)
 {
-  write("session abort\n");
   // we should only allow aborting from the same session we're using.
   if(session == s)
   {

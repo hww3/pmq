@@ -6,6 +6,21 @@ address.
 pmqp is a message queue printer, it drains messages from a queue running 
 on the loopback address.
 
-There's currently no configuration or security, and the only queue type is 
-a point to point queue with reliable message delivery for a single 
-consumer. Queues are currently automatically created upon subscription. 
+There's currently no configuration or security. Similarly, there is no 
+message persistance (yet).
+
+The readers (PMQTopicReader and PMQQueueReader) support callback mode or 
+blocking read mode. Messages are streamed to the reader upon subscription. 
+
+Available Queue Types:
+
+SimpleQueue: a simple point to point queue between a writer and a single 
+consumer. Messages are held for the consumer and any waiting messages are 
+delivered at subscription time. 
+
+SimpleTopic: a single to many queue between x writers and y consumers. 
+Messages are not held, and are delivered immediately to any subscribed 
+sessions.
+
+Queues and Topics are currently automatically created upon subscription; 
+this is a configurable option. 

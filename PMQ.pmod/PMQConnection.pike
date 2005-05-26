@@ -292,7 +292,9 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     else if(this->conn)
     {
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
+      conn->set_blocking_keep_callbacks();
       conn->write((string)packet);
+      conn->set_nonblocking_keep_callbacks();
     }
     else DEBUG(1, "no conn!\n");
   }
@@ -348,11 +350,16 @@ DEBUG(2, "catching up with queued incoming packets.\n");
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);//      dta = conn->read(7);
 //      dta = timeout_read(conn, 7, 5);
-dta = conn->read(7);
+      do
+      {
+        dta = conn->read(7);
+      } while (!dta && conn->errno() == 11);
+
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)
       {
         DEBUG(2, "unexpected response from remote: %O.\n", dta);
+        DEBUG(2, "error: %O.\n", conn->errno());
      if(!keep)
        set_network_mode(MODE_NONBLOCK);
         return 0;

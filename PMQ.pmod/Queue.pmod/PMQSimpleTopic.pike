@@ -19,6 +19,10 @@ void create(string name)
 //  call_out(trigger_process_queue, 5);
 }
 
+void process_queue()
+{
+}
+
 void trigger_process_queue()
 {
   if(!processing)
@@ -30,47 +34,34 @@ void trigger_process_queue()
 
 void start()
 {
-
 }
 
 void stop()
 {
-
 }
 
 int post_message(Message.PMQMessage message, PMQSSession session)
 {
   if(writers[session])
   {
-    q->write(message);
+    process(message);
   }
   else return 0;
   call_out(process_queue, 0);
   return 1;
 }
 
-void process_queue()
+void process(Message.PMQMessage message)
 {
-  if(processing) return;
-  if(sizeof(listeners) && !q->is_empty())
+  if(sizeof(listeners))
   {
     processing = 1;
-    do
-    {
 i++;
-      Message.PMQMessage m = q->peek();
 write("i: " + i + "\n");
       foreach(indices(listeners);; PMQSSession listener)
       {
-        if(listener->send_message(m, ack)) q->read();
-        else
-        {
-           DEBUG(1, "%O: Delivery failed; aborting processing.\n", this);
-           processing = 0;
-           return;
-        }
+        listener->send_message(message, ack);
       }
-    } while(!q->is_empty());
   }
 
   processing = 0;

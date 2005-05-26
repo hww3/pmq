@@ -6,7 +6,7 @@ import PMQConstants;
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(1);  
+  DEBUG_LEVEL(0);  
   call_out(create_connection, 1);
   return -1; 
 }
@@ -22,7 +22,6 @@ void create_connection()
 
 void run()
 {
-  reader = client->get_topic_writer("wunderbar");
   call_out(post, 0);
 }
 
@@ -35,13 +34,21 @@ void do_post()
 int i = 0;
   do
   {
-//    Stdio.stdin.gets();
+//
+
+    reader = client->get_topic_writer("wunderbar");
+for(int i  = 0; i  < 15; i++)
+{
     object m = Message.PMQMessage();
     m->set_body(s);
     reader->post(m);
   write("wrote message.\n");
+}
 i++;
-  } while(i<1000);
+destruct(reader);
+//exit(0);
+  } while(i<10);
 
   exit(0);
 }
+	
