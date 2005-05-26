@@ -119,6 +119,20 @@ DEBUG(5, "Message: %s\n", (string)message);
 
     else if(connection_state == CONNECTION_RUNNING)
     {
+      if(object_program(packet) == Packet.PMQStartSession)
+      {
+        PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
+
+        if(!s) 
+        {
+          werror("unknown session in start command!\n");
+          return;
+        }
+       
+        s->start();
+
+      }
+
       if(object_program(packet) == Packet.PMQQSubscribe || 
          object_program(packet) == Packet.PMQTSubscribe)
       {

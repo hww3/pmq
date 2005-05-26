@@ -40,6 +40,15 @@ string get_session_id()
   return this->session_id;
 }
 
+void start()
+{
+  Packet.PMQStartSession p = Packet.PMQStartSession();
+
+  p->set_session(get_session_id());
+
+  get_connection()->send_packet(p);
+}
+
 void deliver(Message.PMQMessage m)
 {
   foreach(indices(listeners);; PMQQueueReader r)

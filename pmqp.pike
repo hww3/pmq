@@ -6,7 +6,7 @@ PMQClient client;
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(10);
+  DEBUG_LEVEL(0);
   call_out(create_connection, 0);
   return -1; 
 }
@@ -26,6 +26,7 @@ void run()
   reader = client->get_queue_reader("wunderbar");
 int i = 0;
 write("starting reader...\n");
+reader->start();
   do
   {
     Message.PMQMessage m = reader->read();

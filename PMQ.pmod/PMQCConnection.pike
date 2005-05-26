@@ -25,8 +25,8 @@ int acked= 0;
   {
     Packet.PMQNull p = Packet.PMQNull();
     Packet.PMQPacket r;
-
     ::create(conn, config, packets);
+
     this->identity = identity;
     DEBUG(4, "PMQCConnection: create!\n");
     r = send_packet_await_response(p);

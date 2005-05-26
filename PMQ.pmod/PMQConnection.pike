@@ -66,14 +66,16 @@
 
     if(get_mode() == MODE_CLIENT)
     {
-//      DEBUG(2, "starting client backend thread\n");
       backend = Pike.Backend();
-      backend->call_out(conn->set_blocking, 0);
       handler = Thread.Thread(run_backend);
+      backend->call_out(conn->set_blocking, 0);
+//      DEBUG(2, "starting client backend thread\n");
     }
     else 
     {
-      backend = Pike.DefaultBackend;
+//      backend = Pike.DefaultBackend;
+      backend = Pike.Backend();
+      handler = Thread.Thread(run_backend);
       set_conn_callbacks_nonblocking();
     }
 
@@ -83,7 +85,7 @@
   {
     conn->set_backend(backend);
 //    backend->call_out(conn->set_backend, 0, backend);
-    this->conn->set_nonblocking(remote_read, UNDEFINED, remote_close);
+    backend->call_out(this->conn->set_nonblocking, 0, remote_read, UNDEFINED, remote_close);
   }
 
   string timeout_read (Stdio.File fd, int len, int timeout)
@@ -291,10 +293,18 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
       out_net_queue->write(packet);
     else if(this->conn)
     {
+      int written = 0;
+      string pkt = (string)packet;
+      int towrite = strlen(pkt);
+
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
-      conn->set_blocking_keep_callbacks();
-      conn->write((string)packet);
-      conn->set_nonblocking_keep_callbacks();
+      conn->set_blocking();
+      do
+      {
+        written += conn->write(pkt);
+      }
+      while(written<towrite);
+      set_conn_callbacks_nonblocking();
     }
     else DEBUG(1, "no conn!\n");
   }
@@ -302,7 +312,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
   void set_network_mode(int mode)
   {
-werror("set_network_mode(%O)\n", mode);
+//werror("set_network_mode(%O)\n", mode);
     if(mode == MODE_NONBLOCK)
     {
       if(!out_net_queue->is_empty())
@@ -328,6 +338,7 @@ DEBUG(2, "catching up with queued incoming packets.\n");
       }
       net_mode = MODE_NONBLOCK;
 
+      if(strlen(read_buffer)) backend->call_out(read_loop, 0);
     }
 
     else net_mode = MODE_BLOCK;
@@ -415,7 +426,6 @@ set_conn_callbacks_nonblocking();
 
   void destroy()
   {
-write("destory");
     conn->close();
     conn->set_read_callback(0);
     DEBUG(4, "PMQConnection: destroy!\n");

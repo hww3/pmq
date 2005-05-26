@@ -99,19 +99,17 @@ DEBUG(1, "setting session id to %s\n", sess);
   p->set_mode(MODE_LISTEN);
   p->set_session(sess);
 
-  Packet.PMQPacket resp = conn->send_packet_await_response(p, 1);  
+  Packet.PMQPacket resp = conn->send_packet_await_response(p);  
 
   if(object_program(resp) != Packet.PMQSessionResponse)
     error("got invalid response to subscription request: %O\n", resp);
 
   if(resp->get_session() != sess)
   { 
-    conn->set_network_mode(MODE_NONBLOCK);
     error("wrong sessionid!\n");
   }
   if(resp->get_code() != CODE_SUCCESS)
   {
-    conn->set_network_mode(MODE_NONBLOCK);
     error("subscribe failed.\n");
   }
 
@@ -122,7 +120,6 @@ DEBUG(1, "setting session id to %s\n", sess);
 
   r->set_queue(queue);
   r->set_session(s);
-  conn->set_network_mode(MODE_NONBLOCK);
   return r;
 }
 
@@ -139,22 +136,19 @@ DEBUG(1, "setting session id to %s\n", sess);
   p->set_mode(MODE_LISTEN);
   p->set_session(sess);
 
-  Packet.PMQPacket resp = conn->send_packet_await_response(p, 1);  
+  Packet.PMQPacket resp = conn->send_packet_await_response(p);  
 
   if(object_program(resp) != Packet.PMQSessionResponse)
   {
-    conn->set_network_mode(MODE_NONBLOCK);
     error("got invalid response to subscription request: %O\n", resp);
   }
 
   if(resp->get_session() != sess)
   {
-    conn->set_network_mode(MODE_NONBLOCK);
     error("wrong sessionid!\n");
   }
   if(resp->get_code() != CODE_SUCCESS)
   {
-    conn->set_network_mode(MODE_NONBLOCK);
     error("subscribe failed.\n");
   }
 
@@ -166,7 +160,6 @@ DEBUG(1, "setting session id to %s\n", sess);
   r->set_topic(topic);
   r->set_session(s);
 
-  conn->set_network_mode(MODE_NONBLOCK);
   return r;
 }
 

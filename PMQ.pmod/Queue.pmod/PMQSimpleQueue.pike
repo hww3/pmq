@@ -61,17 +61,11 @@ void process_queue()
 
       foreach(indices(listeners);; PMQSSession listener)
       {
-        if(listener->send_message(m,  ack))
+        if(listener->started && listener->send_message(m,  ack))
         {
       i++;
           write("wrote message " + i + "\n"); 
           q->read();
-        }
-        else
-        {
-           werror("%O: Delivery failed; aborting processing.\n", this);
-           processing = 0;
-           return;
         }
       }
     } while(!q->is_empty());
@@ -89,7 +83,7 @@ int subscribe(PMQSSession listener)
     {
       listeners += (< listener >);
       listener->set_queue(this);
-      call_out(process_queue, 0);
+    //  call_out(process_queue, 0);
       return CODE_SUCCESS;
     }
   }

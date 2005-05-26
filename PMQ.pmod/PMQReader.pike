@@ -26,6 +26,11 @@ void session_abort(object s)
   }
 }
 
+void start()
+{
+  session->start();  
+}
+
 void deliver(Message.PMQMessage m)
 {
   DEBUG(1, "PMQReader: incoming %s message from %s, %s\n", 

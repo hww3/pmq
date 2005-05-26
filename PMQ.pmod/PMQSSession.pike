@@ -3,6 +3,7 @@ string session_id;
 int mode;
 PMQSConnection conn;
 Queue.PMQQueue queue;
+int started = 0;
 
 void create()
 {
@@ -12,6 +13,14 @@ void create()
 string _sprintf(mixed ... args)
 {
   return "PMQSSession(" + get_session_id() + ")";
+}
+
+void start()
+{
+  started = 1;
+
+  if(queue)
+    queue->process_queue();
 }
 
 int send_message(Message.PMQMessage message, int ack)
