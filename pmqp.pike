@@ -26,7 +26,7 @@ void run()
   reader = client->get_queue_reader("wunderbar");
 int i = 0;
 write("starting reader...\n");
-reader->start();
+//reader->start();
   do
   {
     Message.PMQMessage m = reader->read();

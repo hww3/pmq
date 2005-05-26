@@ -4,28 +4,41 @@ string name;
 inherit .PMQQueue;
 import PMQConstants;
 
+Thread.Mutex lock = Thread.Mutex();
+
 ADT.Queue q;
 
 int ack = 0;
 int processing = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
+multiset waiters = (<>);
 
 void create(string name)
 {
   this->name = name;
-// write("Queue " + name + " created.\n");
   q = ADT.Queue();
-//  call_out(trigger_process_queue, 5);
+  call_out(queuesize, 5);
 }
 
-void trigger_process_queue()
+void queuesize()
 {
-  if(!processing)
-    process_queue();
+  werror("%d messages in %s\n", sizeof((array)q), name);
+  call_out(queuesize,5);
+}
+// a return value of 0 indicates we're already waiting for a message.
+int get_message(PMQ.PMQSSession s)
+{
+  if(!listeners[s])
+  {
+     DEBUG(2, "Session %O not already subscribed.\n");
+     return 0;
+  }
+  if(waiters[s]) return -1;
+  else
+    waiters[s] = 1;
 
-  call_out(trigger_process_queue, 5);
-
+  call_out(process_queue, 0);
 }
 
 void start()
@@ -51,27 +64,24 @@ int post_message(Message.PMQMessage message, PMQSSession session)
 
 void process_queue()
 {
-  if(processing) return;
+  Thread.MutexKey key = lock->lock();
   if(sizeof(listeners) && !q->is_empty())
   {
-    processing = 1;
-    do
-    {
       Message.PMQMessage m = q->peek();
 
-      foreach(indices(listeners);; PMQSSession listener)
+      // there should only ever be one listener.
+      foreach(indices(waiters);; PMQSSession listener)
       {
-        if(listener->started && listener->send_message(m,  ack))
+        waiters[listener] = 0; // the SSession will add it back when 
+                                 // it's time for another.
+        if(listener->send_message(m,  ack))
         {
-      i++;
-          write("wrote message " + i + "\n"); 
           q->read();
         }
       }
-    } while(!q->is_empty());
   }
 
-  processing = 0;
+  key = 0;
 }
 
 int subscribe(PMQSSession listener)
@@ -106,6 +116,7 @@ int unsubscribe(PMQSSession listener)
     if(sizeof(listeners) != 0 && listeners[listener])
     {
       listeners -= (< listener >);
+      waiters -= (< listener >);
       return CODE_SUCCESS;
     }
   }

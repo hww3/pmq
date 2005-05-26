@@ -32,23 +32,12 @@ void post()
 void do_post()
 {  string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
 int i = 0;
-  do
-  {
-//
 
     reader = client->get_queue_writer("wunderbar");
-for(int i  = 0; i  < 15; i++)
-{
     object m = Message.PMQMessage();
     m->set_body(s);
-    reader->post(m);
+    reader->write(m);
   write("wrote message.\n");
-}
-i++;
-destruct(reader);
-//exit(0);
-  } while(i<10);
-
   exit(0);
 }
 	

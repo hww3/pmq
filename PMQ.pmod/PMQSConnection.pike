@@ -8,6 +8,8 @@
   multiset write_sessions = (<>);
   multiset listen_sessions = (<>);
 
+  int shello_co;
+
   PMQSSession get_session_by_id(string session_id, int mode)
   {
     mixed sess;
@@ -33,7 +35,14 @@
     ::create(conn, config, packets);
     write("PMQSConnection: create!\n");
     backend->call_out(shello, 0);
-//    call_out(done, 5);
+    shello_co = backend->call_out(shello_timeout, 5);
+  }
+
+  void shello_timeout()
+  {
+    destruct(this);
+//    backend->call_out(shello, 0);
+//    shello_co = backend->call_out(shello_timeout, 5);
   }
 
   PMQIdentity get_identity()
@@ -59,7 +68,7 @@
     Packet.PMQDeliverMessage p = Packet.PMQDeliverMessage();
     string queue = session->get_queue()->name;
     string s = session->get_session_id();
-
+    message = message->clone();
     message->set_header("Sent-From", queue);
     message->set_header("Session", s);
 
@@ -144,6 +153,20 @@ DEBUG(5, "Message: %s\n", (string)message);
         }
        
         s->stop();
+
+      }
+
+      if(object_program(packet) == Packet.PMQGetMessage)
+      {
+        PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
+
+        if(!s) 
+        {
+          werror("unknown session in getmessage command!\n");
+          return;
+        }
+       
+        s->get_message();
 
       }
 
@@ -282,6 +305,10 @@ DEBUG(5, "Message: %s\n", (string)message);
     {
       if(object_program(packet) == Packet.PMQCHello)
       {
+        if(shello_co)
+        {
+          backend->remove_call_out(shello_co);
+        }
         protocol_version = packet->get_version();
         client_id = packet->get_client_id();
 

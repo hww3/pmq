@@ -64,7 +64,10 @@
   {
     do
     {
-      float r = backend(5.0);
+      float r;
+      if(catch(
+        r = backend(5.0)))
+          werror("***\n*** Caught an error in the backend!\n***\n");
     } while(this);
   }
 
@@ -175,22 +178,28 @@
 
   void read_loop()
   {
+DEBUG(5, "read_loop()\n");
     int n, my_look_len;
     string packet_data="";
 
     if(network_state == NETWORK_STATE_LOOKCOMPLETE)
     {
 
-      if(sizeof(read_buffer) < look_len) return;
-
+      if(sizeof(read_buffer) < look_len)
+      {
+        DEBUG(5, "read_loop(): not enough in buffer\n");
+        return;
+      }
       if(sizeof(read_buffer) == look_len)
       {
          packet_data = read_buffer;
          read_buffer = "";
+        DEBUG(5, "read_loop(): got just enough.\n");
       }
 
       else if(sizeof(read_buffer) > look_len)
       {
+        DEBUG(5, "read_loop(): more than enough in buffer\n");
         packet_data = read_buffer[0.. (look_len-1)];
         read_buffer = read_buffer[look_len ..];
       }
@@ -207,6 +216,8 @@
 
     else if(network_state == NETWORK_STATE_LOOKSTART)
     {
+        DEBUG(5, "read_loop(): looking for a packet.\n");
+
       if(sizeof(read_buffer) < 7) return; // we must have at least 7 bytes
 
       // PMQ plus payload len must be at the beginning of our buffer.
@@ -219,6 +230,8 @@
 
       else  // we have a valid packet header.
       {
+        DEBUG(5, "read_loop(): have a valid packet header\n");
+
         look_len = my_look_len;
         packet_data = "";
         network_state = NETWORK_STATE_LOOKCOMPLETE;
@@ -358,7 +371,7 @@ DEBUG(2, "catching up with queued incoming packets.\n");
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
           int|void keep)
   {
-     set_network_mode(MODE_BLOCK);
+    set_network_mode(MODE_BLOCK);
     int n, my_look_len;
 
     if(!conn->is_open())
@@ -369,13 +382,14 @@ DEBUG(2, "catching up with queued incoming packets.\n");
     if(this->conn)
     {
       string dta;
-      conn->set_blocking();
+      backend->call_out(conn->set_blocking, 0);
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);//      dta = conn->read(7);
 //      dta = timeout_read(conn, 7, 5);
       do
       {
         dta = conn->read(7);
+DEBUG(6, "Read %O from conn\n", dta);
       } while (!dta && conn->is_open());
 
 DEBUG(5, "Read from conn: %O\n", dta);
@@ -439,5 +453,8 @@ set_conn_callbacks_nonblocking();
   {
     conn->close();
     conn->set_read_callback(0);
+    conn->set_close_callback(0);
+    conn = 0;
+    backend = 0;
     DEBUG(4, "PMQConnection: destroy!\n");
   }

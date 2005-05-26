@@ -45,6 +45,11 @@ void parse(MIME.Message m)
   headers = copy_value(m->headers);
 }
 
+void set_headers(mapping h)
+{
+  headers = h;
+}
+
 //!
 string get_body()
 {
@@ -62,4 +67,13 @@ string cast(string type)
 {
   MIME.Message m = MIME.Message(message, headers);
   return (string)m;
+}
+
+PMQ.Message.PMQMessage clone()
+{
+  program p = object_program(this);
+  object m = p();
+  m->set_body(get_body());
+  m->set_headers(copy_value(headers));
+  return m;
 }

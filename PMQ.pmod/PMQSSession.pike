@@ -30,7 +30,17 @@ void stop()
 
 int send_message(Message.PMQMessage message, int ack)
 {
-  return get_connection()->send_message(message, this, ack);
+  int r;
+  r = get_connection()->send_message(message, this, ack);
+
+  if(started) call_out(get_message, 0);
+
+  return r;
+}
+
+void get_message()
+{
+  queue->get_message(this);  
 }
 
 void set_session_id(string session_id)
@@ -71,6 +81,3 @@ void set_queue(Queue.PMQQueue queue)
 {
   this->queue = queue;
 }
-
-
-

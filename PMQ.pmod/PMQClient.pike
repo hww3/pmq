@@ -95,6 +95,12 @@ int disconnect()
     destruct(conn);
 }
 
+void destroy()
+{
+  if(conn)
+    destruct(conn);
+}
+
 private mapping register_packet()
 {
   mapping packets=([]);
