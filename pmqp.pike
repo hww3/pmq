@@ -24,7 +24,7 @@ void run()
 {
 
   Stdio.stdin.gets();
-  reader = client->get_topic_reader("wunderbar");
+  reader = client->get_queue_reader("wunderbar");
 int i = 0;
 write("starting reader...\n");
   do

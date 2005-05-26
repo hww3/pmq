@@ -12,7 +12,6 @@ void create(string name)
 {
   this->name = name;
 // write("Topic " + name + " created.\n");
-  q = ADT.Queue();
 //  call_out(trigger_process_queue, 5);
 }
 
