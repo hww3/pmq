@@ -26,9 +26,28 @@ void session_abort(object s)
   }
 }
 
+//!
 void start()
 {
   session->start();  
+}
+
+//!
+void stop()
+{
+  session->stop();  
+}
+
+//!
+void set_read_callback(function cb)
+{
+  incoming_callback = cb;
+}
+
+//!
+function get_read_callback()
+{
+  return incoming_callback;
 }
 
 void deliver(Message.PMQMessage m)
@@ -50,6 +69,22 @@ void deliver(Message.PMQMessage m)
   }
 }
 
+//! read a message from the queue. 
+//!
+//! an internal queue of messages delivered to this client is kept
+//! and depleted. if there are no waiting messages to be read, then 
+//! this call will block for up to wait seconds until a message arrives
+//! at the client.
+//!
+//! delivery will not take place until the session has been started.
+//!
+//! @note
+//! this method is multithread safe; only one thread will be executing in 
+//! this method at a time. all other reads will be locked until the 
+//! thread holding the lock completes the read.
+//!
+//! @note 
+//!   the default wait time is 3600 seconds (one hour).
 Message.PMQMessage read(int|float|void wait)
 {
   Thread.MutexKey key = lock->lock();

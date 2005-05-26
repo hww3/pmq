@@ -3,6 +3,7 @@ inherit PMQWriter;
 
 string topic;
 
+//!
 string get_topic()
 {
   return this->topic;

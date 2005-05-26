@@ -49,6 +49,15 @@ void start()
   get_connection()->send_packet(p);
 }
 
+void stop()
+{
+  Packet.PMQStopSession p = Packet.PMQStopSession();
+
+  p->set_session(get_session_id());
+
+  get_connection()->send_packet(p);
+}
+
 void deliver(Message.PMQMessage m)
 {
   foreach(indices(listeners);; PMQQueueReader r)

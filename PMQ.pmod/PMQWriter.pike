@@ -28,7 +28,19 @@ void session_abort(PMQCSession s)
   }
 }
 
-int post(Message.PMQMessage m)
+//! write a message to the queue or topic.
+//!
+//! if the queue or topic is configured for reliable writing, 
+//! this method will wait until a response is received from
+//! the server that the message was (un)successfully posted to the queue.
+//! in this case, the return value will indicate the success code of 
+//! the operation from the PMQ server.
+//!
+//! if the queue or topic is not configured for reliable writing (fire and 
+//! forget,) the metiod will return once the message has been written to 
+//! the network. if an error occurred, @PMQ.PMQConstants.CODE_FAILURE will
+//! be returned.
+int write(Message.PMQMessage m)
 {
   if(!this->session)
   {
@@ -63,13 +75,13 @@ int post(Message.PMQMessage m)
   else
   {
     if(catch(session->get_connection()->send_packet(p)))
-      return 0;
+      return CODE_FAILURE;
     else
-      return 1;
+      return CODE_SUCCESS;
   }   
 }
 
-string generate_message_id()
+private string generate_message_id()
 {
   message_no++;
 

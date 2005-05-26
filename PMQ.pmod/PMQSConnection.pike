@@ -133,6 +133,20 @@ DEBUG(5, "Message: %s\n", (string)message);
 
       }
 
+      if(object_program(packet) == Packet.PMQStopSession)
+      {
+        PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
+
+        if(!s) 
+        {
+          werror("unknown session in stop command!\n");
+          return;
+        }
+       
+        s->stop();
+
+      }
+
       if(object_program(packet) == Packet.PMQQSubscribe || 
          object_program(packet) == Packet.PMQTSubscribe)
       {

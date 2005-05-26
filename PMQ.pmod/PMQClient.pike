@@ -13,6 +13,15 @@ PMQIdentity identity;
 string url;
 int session_no;
 
+//! create a client object. a client can be connected to one PMQ
+//! server at a time, with multiple queue sessions running over it.
+//! the client creates a thread to handle async i/o with the PMQ server.
+//!
+//! arguments supplied to the constructor will be set appropriately.
+//!
+//! @seealso set_identity
+//! @seealso set_properties
+//! @seealso set_url
 void create(string|void url, PMQProperties|void prop, PMQIdentity|void identity)
 {
   if(url)
@@ -29,21 +38,30 @@ void create(string|void url, PMQProperties|void prop, PMQIdentity|void identity)
   }
 }
 
+//! sets the url of the PMQ server to connect with.
+//!
+//! Format: pmq[s]://host:port
 void set_url(string url)
 {
   this->url = url;
 }
 
+//!
 void set_properties(PMQProperties prop)
 {
   this->prop = prop;
 }
 
+//!
 void set_identity(PMQIdentity identity)
 {
   this->identity = identity;
 }
 
+//! connect to a PMQ server.
+//!
+//! @returns
+//!  0 on failure, 1 on success.
 int connect() 
 {
   string host;
@@ -63,6 +81,18 @@ int connect()
   }
 
   conn = PMQCConnection(c, prop, identity, register_packet());
+
+  return conn->is_running();
+}
+
+//! disconnect from a PMQ server.
+//!
+//! @returns
+//!  0 on failure, 1 on success.
+int disconnect() 
+{
+  if(conn)
+    destruct(conn);
 }
 
 private mapping register_packet()
@@ -86,6 +116,7 @@ private array decode_url(string url)
   return array_sscanf(url, "pmq://%s:%d");
 }
 
+//!
 PMQQueueReader get_queue_reader(string queue)
 {
   if(!conn || !conn->is_open())
@@ -122,7 +153,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   r->set_session(s);
   return r;
 }
-
+//!
 PMQTopicReader get_topic_reader(string topic)
 {
   if(!conn || !conn->is_open())
@@ -163,6 +194,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   return r;
 }
 
+//!
 PMQQueueWriter get_queue_writer(string queue)
 {
   if(!conn || !conn->is_open())
@@ -198,6 +230,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   return r;
 }
 
+//!
 PMQTopicWriter get_topic_writer(string topic)
 {
   if(!conn || !conn->is_open())
@@ -233,7 +266,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   return r;
 }
 
-string generate_session_id()
+private string generate_session_id()
 {
   string id;
   session_no ++;

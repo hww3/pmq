@@ -44,6 +44,17 @@
       return "PMQConnection(" + addr + ", " + connection_state + ")";
   }
 
+  int is_running()
+  {
+    if(!conn->is_open)
+     return 0;
+
+    if(connection_state==CONNECTION_RUNNING)    
+      return 1;
+
+    else return 0;
+  }
+
   int is_open()
   { 
     return conn->is_open();

@@ -23,6 +23,11 @@ void start()
     queue->process_queue();
 }
 
+void stop()
+{
+  started = 0;
+}
+
 int send_message(Message.PMQMessage message, int ack)
 {
   return get_connection()->send_message(message, this, ack);
