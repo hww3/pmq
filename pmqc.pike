@@ -36,7 +36,7 @@ int i = 0;
   {
 //
 
-    reader = client->get_topic_writer("wunderbar");
+    reader = client->get_queue_writer("wunderbar");
 for(int i  = 0; i  < 15; i++)
 {
     object m = Message.PMQMessage();

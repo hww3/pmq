@@ -4,13 +4,10 @@ string name;
 
 import PMQConstants;
 
-ADT.Queue q;
-
 int ack = 0;
 int processing = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
-int i = 0 ;
 void create(string name)
 {
   this->name = name;
@@ -53,11 +50,9 @@ int post_message(Message.PMQMessage message, PMQSSession session)
 
 void process(Message.PMQMessage message)
 {
+    processing = 1;
   if(sizeof(listeners))
   {
-    processing = 1;
-i++;
-write("i: " + i + "\n");
       foreach(indices(listeners);; PMQSSession listener)
       {
         listener->send_message(message, ack);
