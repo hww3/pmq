@@ -354,7 +354,7 @@ DEBUG(2, "catching up with queued incoming packets.\n");
       do
       {
         dta = conn->read(7);
-      } while (!dta && conn->errno() == 11);
+      } while (!dta && conn->is_open());
 
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)

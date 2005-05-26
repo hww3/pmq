@@ -1,3 +1,4 @@
+int i = 0;
 import PMQ;
 string name;
 inherit .PMQQueue;
@@ -60,10 +61,15 @@ void process_queue()
 
       foreach(indices(listeners);; PMQSSession listener)
       {
-        if(listener->send_message(m,  ack)) q->read();
+        if(listener->send_message(m,  ack))
+        {
+      i++;
+          write("wrote message " + i + "\n"); 
+          q->read();
+        }
         else
         {
-           DEBUG(1, "%O: Delivery failed; aborting processing.\n", this);
+           werror("%O: Delivery failed; aborting processing.\n", this);
            processing = 0;
            return;
         }
