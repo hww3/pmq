@@ -65,9 +65,13 @@
     do
     {
       float r;
-      if(catch(
+      mixed e;
+      if(e = catch(
         r = backend(5.0)))
+        {
           werror("***\n*** Caught an error in the backend!\n***\n");
+          master()->desribe_error(e);
+        }
     } while(this);
   }
 
@@ -99,7 +103,7 @@
   {
     conn->set_backend(backend);
 //    backend->call_out(conn->set_backend, 0, backend);
-    backend->call_out(this->conn->set_nonblocking, 0, remote_read, UNDEFINED, remote_close);
+    conn->set_nonblocking(remote_read, UNDEFINED, remote_close);
   }
 
   string timeout_read (Stdio.File fd, int len, int timeout)
@@ -173,7 +177,10 @@
 
     DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
     if(net_mode == MODE_NONBLOCK)
+    {
       read_loop();
+    }
+    else werror("mode is block, so we wait.\n");
   }
 
   void read_loop()
@@ -328,7 +335,8 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
         written += conn->write(pkt);
       }
       while(written<towrite);
-      set_conn_callbacks_nonblocking();
+
+      if(net_mode == MODE_NONBLOCK) set_conn_callbacks_nonblocking();
     }
     else DEBUG(1, "no conn!\n");
   }
@@ -336,7 +344,6 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
   void set_network_mode(int mode)
   {
-//werror("set_network_mode(%O)\n", mode);
     if(mode == MODE_NONBLOCK)
     {
       if(!out_net_queue->is_empty())
@@ -365,13 +372,18 @@ DEBUG(2, "catching up with queued incoming packets.\n");
       if(strlen(read_buffer)) backend->call_out(read_loop, 0);
     }
 
-    else net_mode = MODE_BLOCK;
+    else
+    {
+       net_mode = MODE_BLOCK;
+       conn->set_blocking();
+    }
   }
 
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
           int|void keep)
   {
     set_network_mode(MODE_BLOCK);
+    conn->set_blocking();
     int n, my_look_len;
 
     if(!conn->is_open())
@@ -382,14 +394,17 @@ DEBUG(2, "catching up with queued incoming packets.\n");
     if(this->conn)
     {
       string dta;
-      backend->call_out(conn->set_blocking, 0);
+      conn->set_blocking;
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);//      dta = conn->read(7);
 //      dta = timeout_read(conn, 7, 5);
+
+      conn->set_blocking;
+
       do
       {
         dta = conn->read(7);
-DEBUG(6, "Read %O from conn\n", dta);
+DEBUG(6, "Read %O, %O from conn\n", dta, conn->errno());
       } while (!dta && conn->is_open());
 
 DEBUG(5, "Read from conn: %O\n", dta);
@@ -398,13 +413,13 @@ DEBUG(5, "Read from conn: %O\n", dta);
         DEBUG(2, "unexpected response from remote: %O.\n", dta);
         DEBUG(2, "error: %O.\n", conn->errno());
 
-     set_conn_callbacks_nonblocking();
      if(!keep)
      {
        set_network_mode(MODE_NONBLOCK);
        
        return 0;
       }
+      else return 0;
       }
       // PMQ plus payload len must be at the beginning of our buffer.
       n = sscanf(dta, "PMQ%4c%s", my_look_len, dta);
@@ -413,15 +428,18 @@ DEBUG(5, "Read from conn: %O\n", dta);
       {
         if(!keep)
           set_network_mode(MODE_NONBLOCK);
-        set_conn_callbacks_nonblocking();
         error("unexpected response from server.\n");
       }
+      string newdta="";
       if(sizeof(dta) < my_look_len)
       {
 //        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
-        dta = dta + conn->read(my_look_len-sizeof(dta));
-        DEBUG(5, "Read from conn: %O\n", dta);
+        do {
+          newdta = conn->read(my_look_len-sizeof(dta));
+        } while (!newdta && conn->is_open());
+        DEBUG(5, "Read from conn: %O\n", newdta);
       }
+      dta = dta + newdta;
       if(sizeof(dta) < my_look_len)
        {
          if(!keep)
