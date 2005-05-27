@@ -383,7 +383,6 @@ DEBUG(2, "catching up with queued incoming packets.\n");
           int|void keep)
   {
     set_network_mode(MODE_BLOCK);
-    conn->set_blocking();
     int n, my_look_len;
 
     if(!conn->is_open())
@@ -394,12 +393,9 @@ DEBUG(2, "catching up with queued incoming packets.\n");
     if(this->conn)
     {
       string dta;
-      conn->set_blocking;
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
       send_packet(packet, 1);//      dta = conn->read(7);
 //      dta = timeout_read(conn, 7, 5);
-
-      conn->set_blocking;
 
       do
       {
