@@ -35,14 +35,37 @@ void read_config()
 {
   config = PMQ.PMQProperties();
 
-  config->set("pmqd.queue.autocreate", "1");
-  config->set("pmqd.topic.autocreate", "1");
+  string c = Stdio.read_file("pmqd.config");
+
+  if(c)  config->load(c);
+
   return;
 }
 
 void setup_port()
 {
-  port->bind(9999, accept_connection);  
+
+  if(config->get("pmqd.domainsocket.listenpath"))
+  {
+    werror("starting pmqd with a listener at " + 
+      config->get("pmqd.domainsocket.listenpath") + ".\n");
+    port->bind_unix(config->get("pmqd.domainsocket.listenpath"), 
+      accept_connection);
+  }
+  else if(config->get("pmqd.tcpsocket.listenport"))
+  {
+    int port = (int)config->get("pmqd.tcpsocket.listenport");
+    if(!port) port = 9999;
+  
+    werror("starting pmqd with a listener on " + port + ".\n");
+    this->port->bind(9999, accept_connection);  
+  }
+
+  else
+  {
+    werror("no port or domain socket path specified!\n");
+    exit(1);
+  }
 }
 
 void accept_connection(mixed id)
@@ -52,7 +75,7 @@ void accept_connection(mixed id)
   conn->set_queue_manager(manager);  
   connections[conn] = 1;
 }
-
+	
 void register_packet()
 {
   packets=([]);
@@ -68,4 +91,3 @@ void register_packet()
   }
 
 }
-

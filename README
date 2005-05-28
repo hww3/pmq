@@ -1,9 +1,14 @@
 This is the Pike Message Queue (PMQ).
 
-pmqd is the daemon, which listens on port 9999
-pmqc is a message creator, it connects to the pmqd running on the loopback 
-address.
-pmqp is a message queue printer, it drains messages from a queue running 
+pmqd.config is the configuration file for pmqd.
+
+- pmqd is the daemon, which listens on port 9999 by default. pmqd can also 
+listen on a unix socket. Currently, this is an either/or option.
+
+- pmqc is a message creator, it connects to the pmqd running on the 
+loopback address.
+
+- pmqp is a message queue printer, it drains messages from a queue running 
 on the loopback address.
 
 There's currently no configuration or security. Similarly, there is no 

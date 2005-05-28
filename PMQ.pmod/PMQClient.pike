@@ -68,16 +68,31 @@ int connect()
   int port;
   Stdio.File c = Stdio.File();
 
-  [host, port] = decode_url(url);
+  array h = decode_url(url);
+werror("%O", h);
+  if(sizeof(h) == 2)
+    [host, port] = h;
+  else host = h[0];
 
   // werror("%s, %s, %d\n", url, host, port);
 
-  if(!(host && port))
+  if(host[0..0] == "/")
+  {
+    if(c->connect_unix(host)==0)
+    {
+      return 0;
+    }
+  }
+
+  else if(!(host && port))
     return 0;
 
-  if(c->connect(host, port)==0)
+  else 
   {
-    return 0;
+    if(c->connect(host, port)==0)
+    {
+      return 0;
+    }
   }
 
   conn = PMQCConnection(c, prop, identity, register_packet());
@@ -119,7 +134,10 @@ private mapping register_packet()
 
 private array decode_url(string url)
 {
-  return array_sscanf(url, "pmq://%s:%d");
+  if(search(url, ":") > 4)
+    return array_sscanf(url, "pmq://%s:%d");
+
+  else return array_sscanf(url, "pmq://%s");
 }
 
 //!

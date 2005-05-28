@@ -1,0 +1,17 @@
+Better pmq:// url handling
+SSL support
+Multiple listen ports
+Authentication
+Predefined queues
+Queue permissions
+Fix Simple Topic
+Message priority, lifetimes
+Message persistence
+Multi-server communication
+In process messaging
+Non-pike bindings
+Protocol optimizations
+Performance optimizations
+Queue browsing
+Queue inspection
+More message types

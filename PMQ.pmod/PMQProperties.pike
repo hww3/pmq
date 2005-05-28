@@ -19,7 +19,11 @@ void load(string props)
 {
   foreach(props/"\n";; string line)
   {
+    if(line[0..0] == "#") continue;
+    if(String.trim_whites(line) == "") continue;
+
     array e = line/"=";
+
     if(sizeof(e) > 2)
       error("invalid property line: " + line + "\n");
     set(e[0], e[1]);

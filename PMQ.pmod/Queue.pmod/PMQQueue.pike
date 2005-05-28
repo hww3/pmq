@@ -28,3 +28,8 @@ void stop()
 int post_message(Message.PMQMessage message, PMQSSession session);
 int subscribe(PMQSSession listener);
 int unsubscribe(PMQSSession listener);
+
+class MessageWrapper
+{
+  
+}
