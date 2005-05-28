@@ -14,9 +14,9 @@ blocking read mode. Messages are streamed to the reader upon subscription.
 
 Available Queue Types:
 
-SimpleQueue: a simple point to point queue between a writer and a single 
-consumer. Messages are held for the consumer and any waiting messages are 
-delivered at subscription time. 
+SimpleQueue: a simple point to point queue between one or more writers and 
+a single consumer. Messages are held for the consumer and any waiting 
+messages are delivered at subscription time. 
 
 SimpleTopic: a single to many queue between x writers and y consumers. 
 Messages are not held, and are delivered immediately to any subscribed 
