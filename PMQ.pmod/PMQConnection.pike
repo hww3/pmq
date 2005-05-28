@@ -321,9 +321,13 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
       conn->close();
     }
     if(net_mode == MODE_BLOCK && ! immediate)
+    {
+DEBUG(5, "defferring packet write...\n");
       out_net_queue->write(packet);
+    }
     else if(this->conn)
     {
+DEBUG(5, "performing packet write...\n");
       int written = 0;
       string pkt = (string)packet;
       int towrite = strlen(pkt);
@@ -344,6 +348,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
   void set_network_mode(int mode)
   {
+conn->query_address();
     if(mode == MODE_NONBLOCK)
     {
       if(!out_net_queue->is_empty())
@@ -397,11 +402,8 @@ DEBUG(2, "catching up with queued incoming packets.\n");
       send_packet(packet, 1);//      dta = conn->read(7);
 //      dta = timeout_read(conn, 7, 5);
 
-      do
-      {
         dta = conn->read(7);
 DEBUG(6, "Read %O, %O from conn\n", dta, conn->errno());
-      } while (!dta && conn->is_open());
 
 DEBUG(5, "Read from conn: %O\n", dta);
       if(!dta || sizeof(dta) < 7)
@@ -426,16 +428,13 @@ DEBUG(5, "Read from conn: %O\n", dta);
           set_network_mode(MODE_NONBLOCK);
         error("unexpected response from server.\n");
       }
-      string newdta="";
       if(sizeof(dta) < my_look_len)
       {
 //        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
-        do {
-          newdta = conn->read(my_look_len-sizeof(dta));
-        } while (!newdta && conn->is_open());
-        DEBUG(5, "Read from conn: %O\n", newdta);
+        dta += conn->read(my_look_len-sizeof(dta));
+        DEBUG(5, "Packet data read from conn: %O\n", dta);
       }
-      dta = dta + newdta;
+
       if(sizeof(dta) < my_look_len)
        {
          if(!keep)
@@ -446,7 +445,8 @@ DEBUG(5, "Read from conn: %O\n", dta);
       else if(sizeof(dta) > my_look_len)
       {
         read_buffer += dta[my_look_len..];
-set_conn_callbacks_nonblocking();
+        set_conn_callbacks_nonblocking();
+// Do we need this if we're not doing my lame timeout_read? probably not.
 //        backend->call_out(read_loop, 0);
       }
 

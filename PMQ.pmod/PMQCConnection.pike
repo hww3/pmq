@@ -95,6 +95,8 @@ int acked= 0;
     {
       s->set_connection(0);
     }
+
+    ::destroy();
    
     DEBUG(4, "PMQCConnection: destroy\n");
     // send_packet(Packet.PMQGoodbye());

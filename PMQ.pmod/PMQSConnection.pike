@@ -38,6 +38,12 @@
     shello_co = backend->call_out(shello_timeout, 5);
   }
 
+  void stillalive()
+  {
+    conn->query_address();
+    backend->call_out(stillalive, 5);
+  }
+
   void shello_timeout()
   {
     destruct(this);
@@ -134,7 +140,7 @@ DEBUG(5, "Message: %s\n", (string)message);
 
         if(!s) 
         {
-          werror("unknown session in start command!\n");
+          werror("PMQSConnection: unknown session in start command!\n");
           return;
         }
        
@@ -148,7 +154,7 @@ DEBUG(5, "Message: %s\n", (string)message);
 
         if(!s) 
         {
-          werror("unknown session in stop command!\n");
+          werror("PMQSConnection: unknown session in stop command!\n");
           return;
         }
        
@@ -162,7 +168,7 @@ DEBUG(5, "Message: %s\n", (string)message);
 
         if(!s) 
         {
-          werror("unknown session in getmessage command!\n");
+          werror("PMQSConnection: unknown session in getmessage command!\n");
           return;
         }
        
@@ -230,6 +236,7 @@ DEBUG(5, "Message: %s\n", (string)message);
         }
           send_packet(response, 1);
           set_network_mode(MODE_NONBLOCK);
+          set_conn_callbacks_nonblocking();
       }
 
       if(object_program(packet) == Packet.PMQQUnsubscribe ||
@@ -296,6 +303,7 @@ DEBUG(5, "Message: %s\n", (string)message);
         {
           send_packet(r, 1);
           set_network_mode(MODE_NONBLOCK);
+          set_conn_callbacks_nonblocking();
         }
       }
 
@@ -353,6 +361,7 @@ DEBUG(5, "Message: %s\n", (string)message);
     send_packet(p, 1);
     connection_state = CONNECTION_RUNNING;
     set_network_mode(MODE_NONBLOCK);
+    set_conn_callbacks_nonblocking();
   }
 
   void destroy()
