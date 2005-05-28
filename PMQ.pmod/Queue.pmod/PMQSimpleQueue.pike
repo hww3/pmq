@@ -26,8 +26,8 @@ void queuesize()
   werror("%d messages in %s\n", sizeof((array)q), name);
   call_out(queuesize,5);
 }
-// a return value of 0 indicates we're already waiting for a message.
-int get_message(PMQ.PMQSSession s)
+
+int add_waiter(PMQ.PMQSSession s)
 {
   if(!listeners[s])
   {
@@ -38,7 +38,17 @@ int get_message(PMQ.PMQSSession s)
   else
     waiters[s] = 1;
 
+  return 1;
+}
+
+// a return value of 0 indicates we're already waiting for a message.
+int get_message(PMQ.PMQSSession s)
+{
+  int res = add_waiter(s);
+
   call_out(process_queue, 0);
+
+  return res;
 }
 
 void start()

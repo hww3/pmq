@@ -19,9 +19,12 @@ string _sprintf(mixed ... args)
 void start()
 {
   started = 1;
-
+werror("starting...\n");
+  if(started) call_out(get_message, 0);
+/*
   if(queue)
     queue->process_queue();
+*/
 }
 
 void stop()

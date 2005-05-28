@@ -70,7 +70,7 @@
         r = backend(5.0)))
         {
           werror("***\n*** Caught an error in the backend!\n***\n");
-          master()->desribe_error(e);
+          master()->describe_error(e);
         }
     } while(this);
   }
@@ -103,7 +103,8 @@
   {
     conn->set_backend(backend);
 //    backend->call_out(conn->set_backend, 0, backend);
-    conn->set_nonblocking(remote_read, UNDEFINED, remote_close);
+    backend->call_out(conn->set_nonblocking, 0 , remote_read, UNDEFINED, 
+remote_close);
   }
 
   string timeout_read (Stdio.File fd, int len, int timeout)
@@ -338,7 +339,6 @@ DEBUG(1, "performing packet write...\n");
       do
       {
         written += conn->write(pkt);
-DEBUG(1, "%d written of %d\n", written, towrite);
       }
       while(written<towrite);
 
@@ -350,7 +350,8 @@ DEBUG(1, "%d written of %d\n", written, towrite);
 
   void set_network_mode(int mode)
   {
-conn->query_address();
+//werror("set_network_mode %O\n", mode);
+//conn->query_address();
     if(mode == MODE_NONBLOCK)
     {
       if(!out_net_queue->is_empty())

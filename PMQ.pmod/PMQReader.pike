@@ -103,8 +103,11 @@ Message.PMQMessage read(int|float|void wait)
 
   session->get_message();
 
+/*
+  werror("mode before backend %O:\n", session->get_connection()->conn->mode());
+*/
   mixed r;
- 
+
   if(wait)
     r = be(wait);  
   else
