@@ -1,6 +1,7 @@
 import PMQ;
 string session_id;
 int mode;
+import PMQConstants;
 PMQSConnection conn;
 Queue.PMQQueue queue;
 int started = 0;
@@ -30,6 +31,7 @@ void stop()
 
 int send_message(Message.PMQMessage message, int ack)
 {
+  DEBUG(1, "%O->send_message(%O, %O)\n", this, message, ack);
   int r;
   r = get_connection()->send_message(message, this, ack);
 

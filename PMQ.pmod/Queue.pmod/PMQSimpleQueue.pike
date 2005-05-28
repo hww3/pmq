@@ -53,6 +53,7 @@ void stop()
 
 int post_message(Message.PMQMessage message, PMQSSession session)
 {
+DEBUG(1, "%O->post_message(%O, %O)\n", this, message, session);
   if(writers[session])
   {
     q->write(message);

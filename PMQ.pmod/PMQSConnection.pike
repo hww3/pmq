@@ -120,6 +120,8 @@ DEBUG(5, "Message: %s\n", (string)message);
   //
   void handle_packet(Packet.PMQPacket packet, int|void immediate)
   {
+DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet, immediate);
+
     // we can get a goodbye at any time.
     if(object_program(packet) == Packet.PMQGoodbye)
     {

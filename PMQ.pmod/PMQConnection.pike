@@ -315,6 +315,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
   void send_packet(Packet.PMQPacket packet, int|void immediate)
   {
+DEBUG(1, "%O->send_packet(%O, %O)\n", this, packet, immediate);
     if(!conn->is_open())
     {
       DEBUG(3, "closing conn\n");
@@ -322,12 +323,12 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     }
     if(net_mode == MODE_BLOCK && ! immediate)
     {
-DEBUG(5, "defferring packet write...\n");
+DEBUG(1, "defferring packet write...\n");
       out_net_queue->write(packet);
     }
     else if(this->conn)
     {
-DEBUG(5, "performing packet write...\n");
+DEBUG(1, "performing packet write...\n");
       int written = 0;
       string pkt = (string)packet;
       int towrite = strlen(pkt);
@@ -337,6 +338,7 @@ DEBUG(5, "performing packet write...\n");
       do
       {
         written += conn->write(pkt);
+DEBUG(1, "%d written of %d\n", written, towrite);
       }
       while(written<towrite);
 

@@ -21,6 +21,14 @@ int acked= 0;
     return 0;
   }
 
+void stateofread()
+{
+
+   werror("read buffer: %O\n", read_buffer);
+   werror("read: %O\n", conn->read(8092, 1));
+    backend->call_out(stateofread, 5);
+
+}
   void create(Stdio.File conn, PMQProperties config, PMQIdentity identity, mapping packets)
   {
     Packet.PMQNull p = Packet.PMQNull();
@@ -31,6 +39,7 @@ int acked= 0;
     DEBUG(4, "PMQCConnection: create!\n");
     r = send_packet_await_response(p);
 
+    backend->call_out(stateofread, 0);
     DEBUG(3, "%O->create(): got packet %O\n", this, r);
 
     if(object_program(r) == Packet.PMQSHello)
