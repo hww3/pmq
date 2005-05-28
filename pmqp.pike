@@ -25,14 +25,18 @@ void run()
 
   reader = client->get_queue_reader("wunderbar");
 int i = 0;
-write("starting reader...\n");
-//reader->start();
+  reader->set_read_callback(lambda(){i++; if(i%100 == 0) write("got " + i 
++ " messages.\n"); });
+  reader->start();
+return;
+  write("starting reader...\n");
   do
   {
     Message.PMQMessage m = reader->read();
-    werror("reader got a message: %O\n", m);
+//    werror("reader got a message: %O\n", m);
 i++;
-write("msgs: " + i + "\n");
+
+if(i%100 == 0) write("got " + i + " messages.\n");
   }
   while(1);
 }
