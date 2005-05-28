@@ -11,6 +11,10 @@ loopback address.
 - pmqp is a message queue printer, it drains messages from a queue running 
 on the loopback address.
 
+- web/queue_reader.pike is a Roxen/Caudium script that impliments a simple 
+queue reader. Simply append the name of the queue (ala PathInfo) to the 
+request and you can get the next message from the queue.
+
 There's currently no configuration or security. Similarly, there is no 
 message persistance (yet).
 
