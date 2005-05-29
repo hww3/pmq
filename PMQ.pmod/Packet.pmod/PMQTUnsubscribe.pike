@@ -32,12 +32,12 @@
     this->msg_data->topic = topic;
   }
 
-  void set_session(int session)
+  void set_session(string session)
   {
     this->msg_data->session = session;
   }
 
-  int get_session()
+  string get_session()
   {
     return this->msg_data->session;
   }

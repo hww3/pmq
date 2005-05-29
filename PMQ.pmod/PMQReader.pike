@@ -128,3 +128,8 @@ void set_session(object session)
   this->session = session;
   session->set_listener(this);
 }
+
+void destroy()
+{
+  destruct(session);
+}

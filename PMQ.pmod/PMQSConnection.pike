@@ -253,11 +253,14 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet, immediate);
           queue_name = packet->get_topic();
         else queue_name = packet->get_queue();
 
-        PMQSSession s = get_session_by_id(packet->get_session(), packet->get_mode());
+        PMQSSession s;
+        s = (get_session_by_id(packet->get_session(), MODE_LISTEN) 
+               || get_session_by_id(packet->get_session(), MODE_WRITE));
 
         Queue.PMQQueue q;
-        if(type) q = manager->get_topic_by_name(queue_name);
-        else q = manager->get_queue_by_name(queue_name);
+
+        if(s && s->queue)
+          q = s->queue; 
 
         if(q)
         {

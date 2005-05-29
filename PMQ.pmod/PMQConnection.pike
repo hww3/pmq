@@ -66,12 +66,14 @@
     {
       float r;
       mixed e;
-      if(e = catch(
-        r = backend(5.0)))
-        {
+//      if(e = catch(
+        r = backend(5.0);//))
+/* 
+       {
           werror("***\n*** Caught an error in the backend!\n***\n");
-          master()->describe_error(e);
+          werror(master()->describe_error(e));
         }
+*/
     } while(this);
   }
 

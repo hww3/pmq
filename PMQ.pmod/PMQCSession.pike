@@ -40,6 +40,34 @@ string get_session_id()
   return this->session_id;
 }
 
+void unsubscribe()
+{
+  foreach(indices(listeners + writers);; object o)
+  {
+    if(o->get_queue)
+    {
+      Packet.PMQQUnsubscribe p = Packet.PMQQUnsubscribe();
+  
+      p->set_queue(o->get_queue());
+      p->set_session(get_session_id());
+  
+      conn->send_packet(p);
+
+    }
+    else if(o->get_topic)
+    {
+      Packet.PMQTUnsubscribe p = Packet.PMQTUnsubscribe();
+  
+      p->set_topic(o->get_topic());
+      p->set_session(get_session_id());
+  
+      conn->send_packet(p);
+   
+    }
+  }
+
+}
+
 void start()
 {
   Packet.PMQStartSession p = Packet.PMQStartSession();
@@ -87,5 +115,5 @@ void destroy()
     o->session_abort(this);
 
   stop();
-  
+  unsubscribe();
 }
