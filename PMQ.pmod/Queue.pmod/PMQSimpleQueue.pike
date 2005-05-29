@@ -41,12 +41,33 @@ int add_waiter(PMQ.PMQSSession s)
   return 1;
 }
 
+int remove_waiter(PMQ.PMQSSession s)
+{
+  if(!listeners[s])
+  {
+     DEBUG(2, "Session %O not already subscribed.\n");
+     return 0;
+  }
+  if(waiters[s])
+    waiters[s] = 0;
+
+  return 1;
+}
+
 // a return value of 0 indicates we're already waiting for a message.
 int get_message(PMQ.PMQSSession s)
 {
   int res = add_waiter(s);
 
   call_out(process_queue, 0);
+
+  return res;
+}
+
+// a return value of 0 indicates we're already waiting for a message.
+int unget_message(PMQ.PMQSSession s)
+{
+  int res = remove_waiter(s);
 
   return res;
 }

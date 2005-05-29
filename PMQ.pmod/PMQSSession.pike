@@ -30,6 +30,8 @@ werror("starting...\n");
 void stop()
 {
   started = 0;
+  if(queue)
+    queue->unget_message(this);  
 }
 
 int send_message(Message.PMQMessage message, int ack)
@@ -85,4 +87,13 @@ Queue.PMQQueue get_queue()
 void set_queue(Queue.PMQQueue queue)
 {
   this->queue = queue;
+}
+
+void destroy()
+{
+  stop();
+  if(queue)
+  {
+    queue->unsubscribe(this);
+  }
 }

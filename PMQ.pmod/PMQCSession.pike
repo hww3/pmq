@@ -86,5 +86,6 @@ void destroy()
   foreach(indices(listeners + writers), object o)
     o->session_abort(this);
 
+  stop();
   
 }
