@@ -49,7 +49,11 @@ void setup_port()
   {
     werror("starting pmqd with a listener at " + 
       config->get("pmqd.domainsocket.listenpath") + ".\n");
-    port->bind_unix(config->get("pmqd.domainsocket.listenpath"), 
+    if(Stdio.exist(config->get("pmqd.domainsocket.listenpath")))
+      rm(config->get("pmqd.domainsocket.listenpath"));
+
+    port->bind_unix("/tmp/pmqd.sock",
+//config->get("pmqd.domainsocket.listenpath"), 
       accept_connection);
   }
   else if(config->get("pmqd.tcpsocket.listenport"))
@@ -73,6 +77,7 @@ void accept_connection(mixed id)
   PMQSConnection conn;
   conn = PMQSConnection(port->accept(), config, connections, packets);
   conn->set_queue_manager(manager);  
+  conn->go();
   connections[conn] = 1;
 }
 	
