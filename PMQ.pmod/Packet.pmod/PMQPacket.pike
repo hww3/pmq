@@ -30,3 +30,28 @@
 
     msg_data = decode_value(message);
   }
+
+
+  void set_reply_id(int reply_id)
+  {
+    this->msg_data->reply_id = reply_id;
+  }
+
+  int get_reply_id()
+  {
+    return this->msg_data->reply_id;
+  }
+
+
+  void set_id(int id)
+  {
+    this->msg_data->id = id;
+  }
+
+  int get_id()
+  {
+    return this->msg_data->id;
+  }
+
+
+

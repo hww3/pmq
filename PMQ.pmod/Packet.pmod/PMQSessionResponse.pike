@@ -38,4 +38,3 @@
   {
     return this->msg_data->code;
   }
-
