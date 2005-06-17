@@ -118,9 +118,9 @@ DEBUG(5, "Message: %s\n", (string)message);
   // this is the state machine for received packets. 
   // this is where it all happens.
   //
-  void handle_packet(Packet.PMQPacket packet, int|void immediate)
+  void handle_packet(Packet.PMQPacket packet)
   {
-DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet, immediate);
+DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
 
     // we can get a goodbye at any time.
     if(object_program(packet) == Packet.PMQGoodbye)
@@ -133,6 +133,10 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet, immediate);
     {
       write(sprintf("%O: got NoOp.\n", this));
     }
+
+    int r = ::handle_packet(packet);
+
+    if(r) return;
 
     else if(connection_state == CONNECTION_RUNNING)
     {

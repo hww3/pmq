@@ -24,6 +24,7 @@
   string read_buffer = "";
   int network_state = NETWORK_STATE_START;
   int connection_state = CONNECTION_START;
+  int stop_backend = 0;
   int look_len = 0;
   int packet_num = 0;
   int last_error = 0;
@@ -32,6 +33,9 @@
   int block_read_timeout = 10;
 
   mapping packets;
+  mapping incoming_packets = ([]);
+  mapping incoming_waiters = ([]);
+
   string _sprintf(mixed ... args)
   {
     string addr;
@@ -66,15 +70,16 @@
     {
       float r;
       mixed e;
-//      if(e = catch(
-        r = backend(5.0);//))
-/* 
+werror("%O %O %O\n", this, conn->is_open(), !stop_backend);
+      if(e = catch(
+        r = backend(5.0)))
+ 
        {
           werror("***\n*** Caught an error in the backend!\n***\n");
           werror(master()->describe_error(e));
         }
-*/
-    } while(this);
+
+    } while(this && conn->is_open() && !stop_backend);
   }
 
   void create(Stdio.File conn, PMQProperties config, mapping packets)
@@ -169,6 +174,7 @@ remote_close);
 
   void remote_close()
   {
+write("remote close\n");
     connection_state = CONNECTION_DISCONNECT;
     DEBUG(4, "remote close\n");
     destruct();    
@@ -179,11 +185,7 @@ remote_close);
     read_buffer+=data;
 
     DEBUG(5, "%O->remote_read(%O, %O)\n", this, id, data);
-    if(net_mode == MODE_NONBLOCK)
-    {
-      read_loop();
-    }
-    else werror("mode is block, so we wait.\n");
+    read_loop();
   }
 
   void read_loop()
@@ -268,7 +270,33 @@ void handle_protocol_error()
     destruct();
   }
 
-  void|Packet.PMQPacket parse_packet(string packet_data, int mode)
+  Packet.PMQPacket collect_packet(string reply_id, int|void timeout, int|void internal)
+  {
+    Packet.PMQPacket p;
+
+    if(incoming_packets[reply_id])
+    {
+      p = incoming_packets[reply_id];
+      m_delete(incoming_packets, reply_id);
+      return p;
+    }       
+    else if(!internal)// we must wait for the packet to arrive.
+    {
+      float res;
+      Pike.Backend b = Pike.Backend();
+      incoming_waiters[reply_id] = b;
+      if(timeout)
+        res = b(timeout);
+      else
+        res = b();
+      if(res)
+        return collect_packet(reply_id, UNDEFINED, 1);
+    }
+
+    return 0;
+  }
+
+  void parse_packet(string packet_data)
   {
     string packet_type;
     string packet_payload;
@@ -294,26 +322,35 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     DEBUG(5, "parse_packet: created a packet %O\n", packet);
 
     packet->parse(packet_payload);
- if(0)   
- {
-      DEBUG(3, "got an error parsing packet.\n");
-      handle_protocol_error();
-      return;
-    }
-    else
-    {
-      DEBUG(5, "what to do about the packet? %O\n", mode);
-      if(mode)
-        return packet; 
-      else
-        backend->call_out(handle_packet, 0, packet);
-      return;
-    }
+
+    DEBUG(5, "what to do about the packet? %O\n", mode);
+
+    backend->call_out(handle_packet, 0, packet);
+
+    return;
   }
 
-  void handle_packet(Packet.PMQPacket packet, int|void immediate)
+  void|int handle_packet(Packet.PMQPacket packet)
   {
     DEBUG(4, sprintf("%O->handle_packet(%O)\n", this, packet));
+    if(packet->get_reply_id())
+    {
+      if(incoming_waiters[packet->get_reply_id()]) 
+      {
+        incoming_waiters[packet->get_reply_id()]
+           ->call_out(waiter_set_packet, 0, packet);
+        return 1;
+      }
+      else
+      {
+        if(incoming_packets[packet->get_reply_id()])
+          werror("packet with duplicate id already in waiting queue.\n");
+        incoming_packets[packet->get_reply_id()] = packet;
+        return 1;
+      }
+    }
+    else
+     return 0;
   }
 
   void send_packet(Packet.PMQPacket packet, int|void immediate)
@@ -349,50 +386,9 @@ DEBUG(1, "performing packet write...\n");
     else DEBUG(1, "no conn!\n");
   }
 
-
-  void set_network_mode(int mode)
-  {
-//werror("set_network_mode %O\n", mode);
-//conn->query_address();
-    if(mode == MODE_NONBLOCK)
-    {
-      if(!out_net_queue->is_empty())
-      {
-        do
-        {
-DEBUG(2, "catching up with queued outgoing packets.\n");
-          send_packet(out_net_queue->read(), 1);
-        }
-        while(!out_net_queue->is_empty());
-      }
-
-      if(!in_net_queue->is_empty())
-      {
-        do
-        {
-DEBUG(2, "catching up with queued incoming packets.\n");
-          handle_packet(out_net_queue->read(), 1);
-        }
-        while(!in_net_queue->is_empty());
-        if(sizeof(read_buffer))
-          read_loop();
-      }
-      net_mode = MODE_NONBLOCK;
-
-      if(strlen(read_buffer)) backend->call_out(read_loop, 0);
-    }
-
-    else
-    {
-       net_mode = MODE_BLOCK;
-       conn->set_blocking();
-    }
-  }
-
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
           int|void keep)
   {
-    set_network_mode(MODE_BLOCK);
     int n, my_look_len;
 
     if(!conn->is_open())
@@ -404,63 +400,13 @@ DEBUG(2, "catching up with queued incoming packets.\n");
     {
       string dta;
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
-      send_packet(packet, 1);//      dta = conn->read(7);
-//      dta = timeout_read(conn, 7, 5);
 
-        dta = conn->read(7);
-DEBUG(6, "Read %O, %O from conn\n", dta, conn->errno());
+      send_packet(packet, 1);
 
-DEBUG(5, "Read from conn: %O\n", dta);
-      if(!dta || sizeof(dta) < 7)
-      {
-        DEBUG(2, "unexpected response from remote: %O.\n", dta);
-        DEBUG(2, "error: %O.\n", conn->errno());
-
-     if(!keep)
-     {
-       set_network_mode(MODE_NONBLOCK);
-       
-       return 0;
-      }
-      else return 0;
-      }
-      // PMQ plus payload len must be at the beginning of our buffer.
-      n = sscanf(dta, "PMQ%4c%s", my_look_len, dta);
-   
-      if(!n)
-      {
-        if(!keep)
-          set_network_mode(MODE_NONBLOCK);
-        error("unexpected response from server.\n");
-      }
-      if(sizeof(dta) < my_look_len)
-      {
-//        dta = dta + timeout_read(conn, my_look_len-sizeof(dta), 5);
-        dta += conn->read(my_look_len-sizeof(dta));
-        DEBUG(5, "Packet data read from conn: %O\n", dta);
-      }
-
-      if(sizeof(dta) < my_look_len)
-       {
-         if(!keep)
-           set_network_mode(MODE_NONBLOCK);
-         set_conn_callbacks_nonblocking();
-         error("server shorted us!\n");
-       }
-      else if(sizeof(dta) > my_look_len)
-      {
-        read_buffer += dta[my_look_len..];
-        set_conn_callbacks_nonblocking();
-// Do we need this if we're not doing my lame timeout_read? probably not.
-//        backend->call_out(read_loop, 0);
-      }
-
-       Packet.PMQPacket p = parse_packet(dta[0..my_look_len-1], 1);
-     if(!keep)
-       set_network_mode(MODE_NONBLOCK);
-
-       if(!p) error("couldn't parse the packet!\n");      
-       set_conn_callbacks_nonblocking();
+      Packet.PMQPacket p = collect_packet(packet->get_id());
+ 
+      if(!p) error("couldn't parse the packet!\n");      
+      set_conn_callbacks_nonblocking();
 
        return p;
    
@@ -470,9 +416,10 @@ DEBUG(5, "Read from conn: %O\n", dta);
 
   void destroy()
   {
-    conn->close();
+    stop_backend = 1;
     conn->set_read_callback(0);
     conn->set_close_callback(0);
+    conn->close();
     conn = 0;
     backend = 0;
     DEBUG(4, "PMQConnection: destroy!\n");

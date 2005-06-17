@@ -91,8 +91,9 @@ void stop()
   Packet.PMQStopSession p = Packet.PMQStopSession();
 
   p->set_session(get_session_id());
-
-  get_connection()->send_packet(p);
+ 
+  if(get_connection())
+    get_connection()->send_packet(p);
 }
 
 void deliver(Message.PMQMessage m)

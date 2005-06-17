@@ -122,19 +122,14 @@ void stateofread()
       sessions[s] = 0;
   }
 
-  void handle_packet(Packet.PMQPacket packet, int|void immediate)
+  void handle_packet(Packet.PMQPacket packet)
   {
     DEBUG(3, "handle_packet(%O)\n", packet);
-    if(net_mode == MODE_BLOCK && !immediate)
-    {
-    DEBUG(3, "handle_packet(%O) deferring packet for later.\n", packet);
-      in_net_queue->write(packet);
-      return;
-    }
-if(object_program(packet) == Packet.PMQAck)
-{
-   acked++;
-}
+
+    int r = ::handle_packet(packet);
+   
+    if(r) return;
+
     if(object_program(packet) == Packet.PMQGoodbye)
     {
       DEBUG(3, sprintf("%O: got Goodbye.\n", this));
@@ -145,7 +140,6 @@ if(object_program(packet) == Packet.PMQAck)
     {
       if(object_program(packet) == Packet.PMQDeliverMessage)
       {
-//        set_network_mode(MODE_BLOCK);
         Message.PMQMessage m = packet->get_pmqmessage();
         PMQCSession sess = get_session_by_id(m->headers["session"]);
         if(!sess) werror( "Misdelivered message for session %O\n", 
@@ -155,7 +149,6 @@ if(object_program(packet) == Packet.PMQAck)
            Packet.PMQAck a = Packet.PMQAck();
            a->set_id(m->headers["pmq-message-id"]);
            send_packet(a, 1);
-//         set_network_mode(MODE_NONBLOCK);
         }
         sess->deliver(m);
         return;
