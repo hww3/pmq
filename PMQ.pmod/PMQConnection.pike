@@ -20,7 +20,6 @@
   Pike.Backend backend;
   Thread.Thread handler;
   PMQProperties config;
-  int net_mode = MODE_NONBLOCK;
   string read_buffer = "";
   int network_state = NETWORK_STATE_START;
   int connection_state = CONNECTION_START;
@@ -70,7 +69,7 @@
     {
       float r;
       mixed e;
-werror("%O %O %O\n", this, conn->is_open(), !stop_backend);
+//werror("%O %O %O\n", this, conn->is_open(), !stop_backend);
       if(e = catch(
         r = backend(5.0)))
  
@@ -89,21 +88,10 @@ werror("%O %O %O\n", this, conn->is_open(), !stop_backend);
     this->packets = packets;
     network_state = NETWORK_STATE_LOOKSTART;
 
+    backend = Pike.Backend();
+    handler = Thread.Thread(run_backend);
     if(get_mode() == MODE_CLIENT)
-    {
-      backend = Pike.Backend();
-      handler = Thread.Thread(run_backend);
-      backend->call_out(conn->set_blocking, 0);
-//      DEBUG(2, "starting client backend thread\n");
-    }
-    else 
-    {
-//      backend = Pike.DefaultBackend;
-      backend = Pike.Backend();
-      handler = Thread.Thread(run_backend);
       set_conn_callbacks_nonblocking();
-    }
-
   }
 
   void set_conn_callbacks_nonblocking()
@@ -113,54 +101,6 @@ werror("%O %O %O\n", this, conn->is_open(), !stop_backend);
     backend->call_out(conn->set_nonblocking, 0 , remote_read, UNDEFINED, 
 remote_close);
   }
-
-  string timeout_read (Stdio.File fd, int len, int timeout)
-  {
-    string res = "";
-    Pike.Backend be = Pike.Backend();
-    int end_time = time() + timeout;
-    int is_blocking = 0;
-    Pike.Backend o_be;
-    function r_cb, w_cb, c_cb;
-   
-    is_blocking = !(fd->mode() & 0x0400);
-
-    o_be = fd->query_backend();
-    r_cb = fd->query_read_callback();
-    c_cb = fd->query_close_callback();
-    w_cb = fd->query_write_callback();
-
-    fd->set_backend(be);
-    fd->set_nonblocking(lambda (mixed dummy, string s) {res += s;},
-                        0,
-                        lambda () {end_time = 0; remote_close(); });
-
-    while (time() < end_time)
-    {
-      be ((float)(end_time - time()));
-
-      if(sizeof(res) && len == UNDEFINED)
-        break;
-      if(len && sizeof(res) >= len) 
-      {
-        break;
-      }
-    }
-
-    fd->set_backend(o_be);
-    
-    if(is_blocking)
-    {
-      fd->set_blocking();
-    }
-    else
-    {
-      fd->set_nonblocking(r_cb, w_cb, c_cb);
-    }
-
-    return res;
-  }
-
 
   int get_mode()
   {
@@ -216,7 +156,7 @@ DEBUG(5, "read_loop()\n");
         read_buffer = read_buffer[look_len ..];
       }
 
-      if(sizeof(packet_data)) parse_packet(packet_data, 0);
+      if(sizeof(packet_data)) parse_packet(packet_data);
       if(!this) return;
       network_state = NETWORK_STATE_LOOKSTART;
       look_len = 0;
@@ -266,6 +206,7 @@ void handle_protocol_error()
   {
     connection_state = CONNECTION_DISCONNECT;
     send_packet(Packet.PMQGoodbye());
+werror("local close.\n");
     conn->close();
     destruct();
   }
@@ -273,7 +214,7 @@ void handle_protocol_error()
   Packet.PMQPacket collect_packet(string reply_id, int|void timeout, int|void internal)
   {
     Packet.PMQPacket p;
-
+//werror("waiting for a packet with reply_id = %O\n", reply_id);
     if(incoming_packets[reply_id])
     {
       p = incoming_packets[reply_id];
@@ -284,15 +225,14 @@ void handle_protocol_error()
     {
       float res;
       Pike.Backend b = Pike.Backend();
-      incoming_waiters[reply_id] = b;
-      if(timeout)
-        res = b(timeout);
-      else
-        res = b();
-      if(res)
-        return collect_packet(reply_id, UNDEFINED, 1);
+      incoming_waiters[reply_id] = b; 
+      res = b(5.0);
+      m_delete(incoming_waiters, reply_id);
+      b = 0;
+      return collect_packet(reply_id, UNDEFINED, 1);
     }
 
+werror("collect_packet got nothing.\n");
     return 0;
   }
 
@@ -323,11 +263,16 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
     packet->parse(packet_payload);
 
-    DEBUG(5, "what to do about the packet? %O\n", mode);
-
     backend->call_out(handle_packet, 0, packet);
 
     return;
+  }
+
+  void waiter_set_packet(Packet.PMQPacket p)
+  {
+//werror("waiter_set_packet called for %O\n", p->get_reply_id());
+    incoming_packets[p->get_reply_id()] = p;
+    return 0;
   }
 
   void|int handle_packet(Packet.PMQPacket packet)
@@ -345,7 +290,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
       {
         if(incoming_packets[packet->get_reply_id()])
           werror("packet with duplicate id already in waiting queue.\n");
-        incoming_packets[packet->get_reply_id()] = packet;
+        waiter_set_packet(packet);
         return 1;
       }
     }
@@ -353,37 +298,27 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
      return 0;
   }
 
-  void send_packet(Packet.PMQPacket packet, int|void immediate)
+  void send_packet(Packet.PMQPacket packet)
   {
-DEBUG(1, "%O->send_packet(%O, %O)\n", this, packet, immediate);
+DEBUG(1, "%O->send_packet(%O)\n", this, packet);
+if(packet->get_reply_id())
     if(!conn->is_open())
     {
       DEBUG(3, "closing conn\n");
+werror("local close\n");
       conn->close();
     }
-    if(net_mode == MODE_BLOCK && ! immediate)
-    {
-DEBUG(1, "defferring packet write...\n");
-      out_net_queue->write(packet);
-    }
-    else if(this->conn)
-    {
 DEBUG(1, "performing packet write...\n");
       int written = 0;
       string pkt = (string)packet;
       int towrite = strlen(pkt);
 
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
-      conn->set_blocking();
+
       do
-      {
-        written += conn->write(pkt);
-      }
+       written += conn->write(pkt);
       while(written<towrite);
 
-      if(net_mode == MODE_NONBLOCK) set_conn_callbacks_nonblocking();
-    }
-    else DEBUG(1, "no conn!\n");
   }
 
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
@@ -393,6 +328,7 @@ DEBUG(1, "performing packet write...\n");
 
     if(!conn->is_open())
     {
+werror("local close\n");
       conn->close();
     }
 
@@ -401,11 +337,13 @@ DEBUG(1, "performing packet write...\n");
       string dta;
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
 
-      send_packet(packet, 1);
+      packet->set_id("c" + (string)random(10e+5));
 
-      Packet.PMQPacket p = collect_packet(packet->get_id());
+      send_packet(packet);
+
+      Packet.PMQPacket p = collect_packet(packet->get_id(), 10);
  
-      if(!p) error("couldn't parse the packet!\n");      
+      if(!p) error("couldn't collect a packet!\n");      
       set_conn_callbacks_nonblocking();
 
        return p;
@@ -419,6 +357,7 @@ DEBUG(1, "performing packet write...\n");
     stop_backend = 1;
     conn->set_read_callback(0);
     conn->set_close_callback(0);
+werror("destroy close\n");
     conn->close();
     conn = 0;
     backend = 0;

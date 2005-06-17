@@ -21,14 +21,14 @@
     return encoded;
   }
 
-  void set_id(string id)
+  void set_msg_id(string msg_id)
   {
-    this->msg_data->id = id;
+    this->msg_data->msg_id = msg_id;
   }
 
-  int get_id()
+  int get_msg_id()
   {
-    return this->msg_data->id;
+    return this->msg_data->msg_id;
   }
 
   int get_code()

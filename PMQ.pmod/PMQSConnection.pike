@@ -34,8 +34,14 @@
 
     ::create(conn, config, packets);
     write("PMQSConnection: create!\n");
+  }
+
+  void go()
+  {
+    set_conn_callbacks_nonblocking();
     backend->call_out(shello, 0);
     shello_co = backend->call_out(shello_timeout, 5);
+
   }
 
   void stillalive()
@@ -63,9 +69,11 @@
 
   void shello()
   {
+    DEBUG(1, "sending SHello.\n");
     Packet.PMQSHello packet = Packet.PMQSHello();
     packet->set_versions(({"1.0", "2.0"}));
-    send_packet(packet, 1);
+    packet->set_reply_id("welcome");
+    send_packet(packet);
     connection_state = CONNECTION_SENT_SHELLO;
   }
 
@@ -120,7 +128,7 @@ DEBUG(5, "Message: %s\n", (string)message);
   //
   void handle_packet(Packet.PMQPacket packet)
   {
-DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
+DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
 
     // we can get a goodbye at any time.
     if(object_program(packet) == Packet.PMQGoodbye)
@@ -185,7 +193,6 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
       if(object_program(packet) == Packet.PMQQSubscribe || 
          object_program(packet) == Packet.PMQTSubscribe)
       {
-        set_network_mode(MODE_BLOCK);
         int type = 0;
         if(object_program(packet) == Packet.PMQTSubscribe)
           type = 1;
@@ -201,6 +208,7 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
         session->set_mode(packet->get_mode());
 
         Queue.PMQQueue q;
+        if(!manager) werror("*** QUEUE MANAGER MISSING!\n");
         if(type) q = manager->get_topic_by_name(queue_name);
         else q = manager->get_queue_by_name(queue_name);
 
@@ -216,6 +224,7 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
 
         Packet.PMQSessionResponse response = Packet.PMQSessionResponse();
         response->set_session(session->get_session_id());
+        response->set_reply_id(packet->get_id());
 
         int res = 0;
 
@@ -240,8 +249,7 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
         {
             response->set_code(CODE_NOTFOUND);
         }
-          send_packet(response, 1);
-          set_network_mode(MODE_NONBLOCK);
+          send_packet(response);
           set_conn_callbacks_nonblocking();
       }
 
@@ -281,8 +289,6 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
       if(object_program(packet) == Packet.PMQPostMessage)
       {
         Packet.PMQAck r;
-        if(packet->get_ack())
-          set_network_mode(MODE_BLOCK);
 
         string sid = packet->get_session();
         PMQSSession s = get_session_by_id(sid, MODE_WRITE);
@@ -294,6 +300,7 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
         if(packet->get_ack())
         {
           r = Packet.PMQAck();
+          r->set_reply_id(packet->get_id());
           r->set_id(m->get_header("pmq-message-id"));
           r->set_code(CODE_FAILURE);
         }
@@ -310,9 +317,7 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
 
         if(packet->get_ack())
         {
-          send_packet(r, 1);
-          set_network_mode(MODE_NONBLOCK);
-          set_conn_callbacks_nonblocking();
+          send_packet(r);
         }
       }
 
@@ -335,8 +340,6 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
           return;
         }
        
-        set_network_mode(MODE_BLOCK);
-
         backend->call_out(handle_auth, 0, packet);
         return;
       }
@@ -360,16 +363,16 @@ DEBUG(1, "%O->handle_packet(%O, %O)\n", this, packet);
     identity = packet->get_identity();
     write(sprintf("handle_auth: %O\n", identity));
 
-    backend->call_out(con_running, 0);
+    backend->call_out(con_running, 0, packet->get_id());
   }
 
-  void con_running()
+  void con_running(string id)
   {
     Packet.PMQWelcome p = Packet.PMQWelcome();
     p->set_client_id(client_id);
-    send_packet(p, 1);
+    p->set_reply_id(id);
+    send_packet(p);
     connection_state = CONNECTION_RUNNING;
-    set_network_mode(MODE_NONBLOCK);
     set_conn_callbacks_nonblocking();
   }
 

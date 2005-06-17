@@ -30,15 +30,14 @@ void stateofread()
 }
   void create(Stdio.File conn, PMQProperties config, PMQIdentity identity, mapping packets)
   {
-    Packet.PMQNull p = Packet.PMQNull();
-    Packet.PMQPacket r;
     ::create(conn, config, packets);
+
+    Packet.PMQPacket r;
 
     this->identity = identity;
     DEBUG(4, "PMQCConnection: create!\n");
-    r = send_packet_await_response(p);
+    r = collect_packet("welcome", 5);
 
-//    backend->call_out(stateofread, 0);
     DEBUG(3, "%O->create(): got packet %O\n", this, r);
 
     if(object_program(r) == Packet.PMQSHello)
@@ -148,7 +147,7 @@ void stateofread()
         {
            Packet.PMQAck a = Packet.PMQAck();
            a->set_id(m->headers["pmq-message-id"]);
-           send_packet(a, 1);
+           send_packet(a);
         }
         sess->deliver(m);
         return;

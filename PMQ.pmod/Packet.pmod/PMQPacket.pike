@@ -32,23 +32,23 @@
   }
 
 
-  void set_reply_id(int reply_id)
+  void set_reply_id(string reply_id)
   {
     this->msg_data->reply_id = reply_id;
   }
 
-  int get_reply_id()
+  string get_reply_id()
   {
     return this->msg_data->reply_id;
   }
 
 
-  void set_id(int id)
+  void set_id(string id)
   {
     this->msg_data->id = id;
   }
 
-  int get_id()
+  string get_id()
   {
     return this->msg_data->id;
   }
