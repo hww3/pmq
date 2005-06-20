@@ -2,26 +2,30 @@ import PMQ;
 PMQReader reader;
 PMQProperties config;
 PMQClient client;
+Pike.Backend backend;
 import PMQConstants;
 
 int main(int argc, array argv)
 {
-  DEBUG_LEVEL(0);  
+  DEBUG_LEVEL(0);
+  backend = Pike.Backend();
   call_out(create_connection, 1);
   return -1; 
 }
 
 void create_connection()
 {
-for (int z = 0; z < 1000; z++)
-{
-
+if(client) destruct(client);
   write(sprintf("Connecting to pmqd... "));
-//  client = PMQClient("pmq://127.0.0.1:9999");
-  client = PMQClient("pmq:///tmp/pmqd.sock");
+  client = PMQClient("pmq://127.0.0.1:9999");
+//  client = PMQClient("pmq:///tmp/pmqd.sock");
+//  client->set_backend(backend);
   client->connect();
 do_post();
-}
+//sleep(2);
+//destruct(client);
+// System.usleep(20000);
+call_out(create_connection, 0);
   return;  
 
 }

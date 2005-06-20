@@ -28,9 +28,9 @@ void stateofread()
     backend->call_out(stateofread, 5);
 
 }
-  void create(Stdio.File conn, PMQProperties config, PMQIdentity identity, mapping packets)
+  void create(Stdio.File conn, PMQProperties config, PMQIdentity identity, mapping packets, void|Pike.Backend b)
   {
-    ::create(conn, config, packets);
+    ::create(conn, config, packets, b);
 
     Packet.PMQPacket r;
 

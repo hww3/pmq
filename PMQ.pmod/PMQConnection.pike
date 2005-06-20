@@ -81,14 +81,19 @@
     } while(this && conn->is_open() && !stop_backend);
   }
 
-  void create(Stdio.File conn, PMQProperties config, mapping packets)
+  void create(Stdio.File conn, PMQProperties config, mapping packets, void|Pike.Backend b)
   {
     this->conn = conn;
     this->config = config;
     this->packets = packets;
     network_state = NETWORK_STATE_LOOKSTART;
 
-    backend = Pike.Backend();
+    if(b)
+      backend = b;
+    else
+    {
+      backend = Pike.Backend();
+    }
     handler = Thread.Thread(run_backend);
     if(get_mode() == MODE_CLIENT)
       set_conn_callbacks_nonblocking();
@@ -206,7 +211,6 @@ void handle_protocol_error()
   {
     connection_state = CONNECTION_DISCONNECT;
     send_packet(Packet.PMQGoodbye());
-werror("local close.\n");
     conn->close();
     destruct();
   }
@@ -228,7 +232,7 @@ werror("local close.\n");
       incoming_waiters[reply_id] = b; 
       res = b(5.0);
       m_delete(incoming_waiters, reply_id);
-      b = 0;
+      destruct(b);
       return collect_packet(reply_id, UNDEFINED, 1);
     }
 
@@ -305,7 +309,6 @@ if(packet->get_reply_id())
     if(!conn->is_open())
     {
       DEBUG(3, "closing conn\n");
-werror("local close\n");
       conn->close();
     }
 DEBUG(1, "performing packet write...\n");
@@ -328,7 +331,6 @@ DEBUG(1, "performing packet write...\n");
 
     if(!conn->is_open())
     {
-werror("local close\n");
       conn->close();
     }
 
@@ -355,10 +357,12 @@ werror("local close\n");
   void destroy()
   {
     stop_backend = 1;
+    backend->call_out(lambda(){ return; }, 0);
     conn->set_read_callback(0);
     conn->set_close_callback(0);
-werror("destroy close\n");
     conn->close();
+    destruct(conn);
+//    destruct(backend);
     conn = 0;
     backend = 0;
     DEBUG(4, "PMQConnection: destroy!\n");

@@ -10,6 +10,7 @@ import PMQConstants;
 PMQCConnection conn;
 PMQProperties prop;
 PMQIdentity identity;
+Pike.Backend backend;
 string url;
 int session_no;
 
@@ -36,6 +37,11 @@ void create(string|void url, PMQProperties|void prop, PMQIdentity|void identity)
   {
     set_properties(prop);
   }
+}
+
+void set_backend(Pike.Backend b)
+{
+  this->backend = b;
 }
 
 //! sets the url of the PMQ server to connect with.
@@ -67,6 +73,7 @@ int connect()
   string host;
   int port;
   Stdio.File c = Stdio.File();
+  if(!backend) backend = Pike.Backend();
 
   array h = decode_url(url);
 werror("%O", h);
@@ -95,7 +102,7 @@ werror("%O", h);
     }
   }
 
-  conn = PMQCConnection(c, prop, identity, register_packet());
+  conn = PMQCConnection(c, prop, identity, register_packet(), backend);
 
   return conn->is_running();
 }
@@ -113,7 +120,9 @@ int disconnect()
 void destroy()
 {
   if(conn)
+  {
     destruct(conn);
+  }
 }
 
 private mapping register_packet()
@@ -134,7 +143,7 @@ private mapping register_packet()
 
 private array decode_url(string url)
 {
-  if(search(url, ":") > 4)
+  if(search(url, ":", 5) > 4)
     return array_sscanf(url, "pmq://%s:%d");
 
   else return array_sscanf(url, "pmq://%s");
