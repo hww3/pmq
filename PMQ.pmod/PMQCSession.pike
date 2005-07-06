@@ -1,6 +1,7 @@
 import PMQ;
 import PMQConstants;
 
+int mode;
 string session_id;
 
 multiset listeners = (<>);
@@ -11,6 +12,26 @@ PMQCConnection conn;
 void create()
 {
 
+}
+
+void set_mode(int m)
+{
+  mode = m;
+}
+
+int get_mode()
+{  
+  return mode;
+}
+
+int deliver_ack()
+{
+  return (mode & MODE_DELIVER_ACK);
+}
+
+int submit_ack()
+{
+  return (mode & MODE_SUBMIT_ACK);
 }
 
 void set_connection(PMQCConnection conn)
@@ -96,11 +117,18 @@ void stop()
     get_connection()->send_packet(p);
 }
 
-void deliver(Message.PMQMessage m)
+void deliver(Message.PMQMessage m, mixed reply_id)
 {
   foreach(indices(listeners);; PMQQueueReader r)
   {
     r->deliver(m);
+  }
+  if(deliver_ack())
+  {
+    get_connection()->backend->call_out(ack_delivery, 0, 
+       m->headers["pmq-message-id"], reply_id);
+//    ack_delivery(
+//       m->headers["pmq-message-id"], reply_id);
   }
 }
 
@@ -117,4 +145,13 @@ void destroy()
 
   stop();
   unsubscribe();
+}
+
+void ack_delivery(string message_id, string reply_id)
+{
+           Packet.PMQAck a = Packet.PMQAck();
+           a->set_id(message_id);
+           a->set_session(session_id);
+           a->set_reply_id(reply_id);
+           get_connection()->send_packet(a);
 }

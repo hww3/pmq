@@ -15,19 +15,18 @@ int main(int argc, array argv)
 
 void create_connection()
 {
+mixed g = gauge{
+for(int i = 0; i < 100; i++){
 if(client) destruct(client);
   write(sprintf("Connecting to pmqd... "));
   client = PMQClient("pmq://127.0.0.1:9999");
-//  client = PMQClient("pmq:///tmp/pmqd.sock");
-//  client->set_backend(backend);
+//client->set_backend(backend);
   client->connect();
 do_post();
-//sleep(2);
-//destruct(client);
-// System.usleep(20000);
-call_out(create_connection, 0);
-  return;  
-
+}
+};
+werror("time: %O\n", g);
+exit(0);
 }
 
 void run()
@@ -49,7 +48,6 @@ for (int k = 0; k < 10; k++)
     m->set_body(s);
     reader->write(m);
 }
-//  sleep(random(5));
   write("wrote message.\n");
 
   return;

@@ -40,3 +40,13 @@
   {
     this->msg_data->code = code;
   }
+
+  void set_session(string session)
+  {
+    this->msg_data->session = session;
+  }
+
+  string get_session()
+  {
+    return this->msg_data->session;
+  }

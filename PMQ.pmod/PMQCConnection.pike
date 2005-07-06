@@ -143,13 +143,7 @@ void stateofread()
         PMQCSession sess = get_session_by_id(m->headers["session"]);
         if(!sess) werror( "Misdelivered message for session %O\n", 
                         m->headers);
-        if(packet->get_ack())
-        {
-           Packet.PMQAck a = Packet.PMQAck();
-           a->set_id(m->headers["pmq-message-id"]);
-           send_packet(a);
-        }
-        sess->deliver(m);
+        sess->deliver(m, packet->get_id());
         return;
       }
 

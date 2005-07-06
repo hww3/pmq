@@ -1,5 +1,9 @@
 constant MODE_LISTEN = 2;
-constant MODE_WRITE = 3;
+constant MODE_WRITE = 1;
+
+constant MODE_DELIVER_ACK = 4;
+constant MODE_SUBMIT_ACK = 8;
+constant MODE_PERSIST = 8;
 
 //!
 constant CODE_SUCCESS = 1;
@@ -15,9 +19,6 @@ constant CODE_NOTFOUND = 2;
 
 //!
 constant CODE_NOSLOTS = 5;
-
-constant MODE_BLOCK = 250;
-constant MODE_NONBLOCK = 251;
 
 //!
 constant TYPE_PTP = 1;

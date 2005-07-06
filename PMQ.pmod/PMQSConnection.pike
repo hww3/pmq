@@ -8,6 +8,7 @@
   multiset write_sessions = (<>);
   multiset listen_sessions = (<>);
 
+int st;
   int shello_co;
 
   PMQSSession get_session_by_id(string session_id, int mode)
@@ -79,6 +80,7 @@
 
   int send_message(Message.PMQMessage message, PMQSSession session, int ack)
   {
+werror("send_message %O\n", System.gettimeofday()[0] - st);
     Packet.PMQDeliverMessage p = Packet.PMQDeliverMessage();
     string queue = session->get_queue()->name;
     string s = session->get_session_id();
@@ -89,37 +91,11 @@
 DEBUG(5, "Message: %s\n", (string)message);
 
     p->set_pmqmessage(message);
-    p->set_ack(ack);
 
-    if(ack)
-    {
-      Packet.PMQPacket r = send_packet_await_response(p);
-      if(!r)
-      {
-        write("trying to wake up connection..." + conn->query_address() + "\n");
-        return 0;
-      }
-
-      if(object_program(r) != Packet.PMQAck)
-      {
-        if(r) remote_read("", (string)r);
-        return 0;
-      }
-      if(r->get_id() != message->headers["pmq-message-id"])
-      {
-        DEBUG(2, "got PMQAck for wrong message id: %s, got %s\n",
-           message->headers["pmq-message-id"], r->get_id());
-        return 0;
-      }
-      return 1;
-    }
-    else
-    {
      if(catch(send_packet(p)))
        return 0;
      else
        return 1;
-    }
   }
 
   //
@@ -148,7 +124,19 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
 
     else if(connection_state == CONNECTION_RUNNING)
     {
-      if(object_program(packet) == Packet.PMQStartSession)
+      if(object_program(packet) == Packet.PMQAck)
+      {
+        PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
+
+        if(!s)
+        {
+          werror("PMQSConnection: unknown session in start command!\n");
+          return;
+        }
+
+        s->acknowledge(packet->get_id());
+      }
+      else if(object_program(packet) == Packet.PMQStartSession)
       {
         PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
 
@@ -178,7 +166,10 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
 
       if(object_program(packet) == Packet.PMQGetMessage)
       {
+st = System.gettimeofday()[1];
+werror("got packet %O\n", System.gettimeofday()[1] - st);
         PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
+werror("got session %O\n", System.gettimeofday()[1] - st);
 
         if(!s) 
         {
@@ -186,7 +177,9 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
           return;
         }
        
+werror("getting message %O\n", System.gettimeofday()[1] - st);
         s->get_message();
+werror("done getting message %O\n", System.gettimeofday()[1] - st);
 
       }
 
@@ -234,9 +227,9 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
 
           if(res == CODE_SUCCESS)
           {
-            if(session->get_mode() == MODE_LISTEN)
+            if(session->get_mode() & MODE_LISTEN)
               listen_sessions[session] = 1;
-            if(session->get_mode() == MODE_WRITE)
+            if(session->get_mode() & MODE_WRITE)
               write_sessions[session] = 1;  
             response->set_code(CODE_SUCCESS);
           }
@@ -250,7 +243,6 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
             response->set_code(CODE_NOTFOUND);
         }
           send_packet(response);
-          set_conn_callbacks_nonblocking();
       }
 
       if(object_program(packet) == Packet.PMQQUnsubscribe ||
@@ -278,9 +270,9 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
         {
           if(q->unsubscribe(s) == CODE_SUCCESS)
           {
-            if(s->get_mode() == MODE_LISTEN)
+            if(s->get_mode() & MODE_LISTEN)
               listen_sessions[s] = 0;
-            if(s->get_mode() == MODE_WRITE)
+            if(s->get_mode() & MODE_WRITE)
               write_sessions[s] = 0;
            }
         }
@@ -297,10 +289,11 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
 
         Message.PMQMessage m = packet->get_pmqmessage();
 
-        if(packet->get_ack())
+        if(s->submit_ack())
         {
           r = Packet.PMQAck();
           r->set_reply_id(packet->get_id());
+          r->set_session(sid);
           r->set_id(m->get_header("pmq-message-id"));
           r->set_code(CODE_FAILURE);
         }
@@ -309,13 +302,13 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
         {
           int pr = q->post_message(m, s);
 
-          if(packet->get_ack())
+          if(s->submit_ack())
           {
             r->set_code(pr);
           }
         }
 
-        if(packet->get_ack())
+        if(s->submit_ack())
         {
           send_packet(r);
         }
@@ -373,7 +366,6 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
     p->set_reply_id(id);
     send_packet(p);
     connection_state = CONNECTION_RUNNING;
-    set_conn_callbacks_nonblocking();
   }
 
   void destroy()

@@ -56,8 +56,7 @@ int write(Message.PMQMessage m)
 
   p->set_pmqmessage(m);
 
-  if(0)
-//  if(session->get_connection()->config->get_parameter("ack_posts"))
+  if(session->submit_ack())
   {
   
   Packet.PMQPacket r = session->get_connection()->send_packet_await_response(p);

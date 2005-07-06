@@ -150,7 +150,7 @@ private array decode_url(string url)
 }
 
 //!
-PMQQueueReader get_queue_reader(string queue)
+PMQQueueReader get_queue_reader(string queue, int|void flags)
 {
   if(!conn || !conn->is_open())
     error("No connection.\n");
@@ -160,7 +160,7 @@ PMQQueueReader get_queue_reader(string queue)
   sess = generate_session_id();
 DEBUG(1, "setting session id to %s\n", sess);
   p->set_queue(queue);
-  p->set_mode(MODE_LISTEN);
+  p->set_mode(MODE_LISTEN | flags);
   p->set_session(sess);
 
   Packet.PMQPacket resp = conn->send_packet_await_response(p);  
@@ -181,13 +181,14 @@ DEBUG(1, "setting session id to %s\n", sess);
   PMQCSession s = PMQCSession();
   s->set_connection(conn);
   s->set_session_id(sess);
+  s->set_mode(flags);
 
   r->set_queue(queue);
   r->set_session(s);
   return r;
 }
 //!
-PMQTopicReader get_topic_reader(string topic)
+PMQTopicReader get_topic_reader(string topic, int|void flags)
 {
   if(!conn || !conn->is_open())
     error("No connection.\n");
@@ -197,7 +198,7 @@ PMQTopicReader get_topic_reader(string topic)
   sess = generate_session_id();
 DEBUG(1, "setting session id to %s\n", sess);
   p->set_topic(topic);
-  p->set_mode(MODE_LISTEN);
+  p->set_mode(MODE_LISTEN | flags);
   p->set_session(sess);
 
   Packet.PMQPacket resp = conn->send_packet_await_response(p);  
@@ -220,6 +221,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   PMQCSession s = PMQCSession();
   s->set_connection(conn);
   s->set_session_id(sess);
+  s->set_mode(flags);
 
   r->set_topic(topic);
   r->set_session(s);
@@ -228,7 +230,7 @@ DEBUG(1, "setting session id to %s\n", sess);
 }
 
 //!
-PMQQueueWriter get_queue_writer(string queue)
+PMQQueueWriter get_queue_writer(string queue, int|void flags)
 {
   if(!conn || !conn->is_open())
     error("No connection.\n");
@@ -239,7 +241,7 @@ PMQQueueWriter get_queue_writer(string queue)
   sess = generate_session_id();
 DEBUG(1, "setting session id to %s\n", sess);
   p->set_queue(queue);
-  p->set_mode(MODE_WRITE);
+  p->set_mode(MODE_WRITE|flags);
   p->set_session(sess);
 
   Packet.PMQPacket resp = conn->send_packet_await_response(p);  
@@ -256,6 +258,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   PMQCSession s = PMQCSession();
   s->set_connection(conn);
   s->set_session_id(sess);
+  s->set_mode(flags);
 
   r->set_queue(queue);
   r->set_session(s);
@@ -264,7 +267,7 @@ DEBUG(1, "setting session id to %s\n", sess);
 }
 
 //!
-PMQTopicWriter get_topic_writer(string topic)
+PMQTopicWriter get_topic_writer(string topic, int|void flags)
 {
   if(!conn || !conn->is_open())
     error("No connection.\n");
@@ -275,7 +278,7 @@ PMQTopicWriter get_topic_writer(string topic)
   sess = generate_session_id();
 DEBUG(1, "setting session id to %s\n", sess);
   p->set_topic(topic);
-  p->set_mode(MODE_WRITE);
+  p->set_mode(MODE_WRITE | flags);
   p->set_session(sess);
 
   Packet.PMQPacket resp = conn->send_packet_await_response(p);  
@@ -292,6 +295,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   PMQCSession s = PMQCSession();
   s->set_connection(conn);
   s->set_session_id(sess);
+  s->set_mode(flags);
 
   r->set_topic(topic);
   r->set_session(s);

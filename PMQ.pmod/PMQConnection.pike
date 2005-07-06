@@ -69,7 +69,6 @@
     {
       float r;
       mixed e;
-//werror("%O %O %O\n", this, conn->is_open(), !stop_backend);
       if(e = catch(
         r = backend(5.0)))
  
@@ -89,20 +88,27 @@
     network_state = NETWORK_STATE_LOOKSTART;
 
     if(b)
+    {
       backend = b;
+    }
     else
     {
-      backend = Pike.Backend();
+      if(get_mode() == MODE_CLIENT)
+      {
+        backend = Pike.Backend();
+      }
+      else backend = Pike.DefaultBackend;
     }
-    handler = Thread.Thread(run_backend);
+
     if(get_mode() == MODE_CLIENT)
-      set_conn_callbacks_nonblocking();
+      handler = Thread.Thread(run_backend);
+
+     set_conn_callbacks_nonblocking();
   }
 
   void set_conn_callbacks_nonblocking()
   {
     conn->set_backend(backend);
-//    backend->call_out(conn->set_backend, 0, backend);
     backend->call_out(conn->set_nonblocking, 0 , remote_read, UNDEFINED, 
 remote_close);
   }
@@ -304,14 +310,13 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
 
   void send_packet(Packet.PMQPacket packet)
   {
+
 DEBUG(1, "%O->send_packet(%O)\n", this, packet);
-if(packet->get_reply_id())
     if(!conn->is_open())
     {
       DEBUG(3, "closing conn\n");
       conn->close();
     }
-DEBUG(1, "performing packet write...\n");
       int written = 0;
       string pkt = (string)packet;
       int towrite = strlen(pkt);
@@ -319,9 +324,9 @@ DEBUG(1, "performing packet write...\n");
       DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
 
       do
-       written += conn->write(pkt);
-      while(written<towrite);
-
+       written+=conn->write(pkt);
+     while(written<towrite);
+  return;
   }
 
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
@@ -341,12 +346,12 @@ DEBUG(1, "performing packet write...\n");
 
       packet->set_id("c" + (string)random(10e+5));
 
-      send_packet(packet);
+      if(catch(send_packet(packet)))
+         error("error while sending a packet.\n");
 
       Packet.PMQPacket p = collect_packet(packet->get_id(), 10);
  
       if(!p) error("couldn't collect a packet!\n");      
-      set_conn_callbacks_nonblocking();
 
        return p;
    

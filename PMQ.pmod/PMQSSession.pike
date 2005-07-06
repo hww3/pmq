@@ -34,15 +34,41 @@ void stop()
     queue->unget_message(this);  
 }
 
-int send_message(Message.PMQMessage message, int ack)
+int submit_ack()
 {
-  DEBUG(1, "%O->send_message(%O, %O)\n", this, message, ack);
+  return (mode & MODE_SUBMIT_ACK);
+}
+
+int deliver_ack()
+{
+return 0;
+  return (mode & MODE_DELIVER_ACK);
+}
+
+int send_message(Message.PMQMessage message)
+{
+  DEBUG(1, "%O->send_message(%O)\n", this, message);
+  werror( "%O->send_message(%O)\n", this, message);
   int r;
-  r = get_connection()->send_message(message, this, ack);
+int a = deliver_ack();
+mixed c = get_connection();
+function d = c->send_message;
+werror("sending message from session %O\n", System.gettimeofday()[1] - get_connection()->st);
+  r = d(message, this, a);
 
   if(started) call_out(get_message, 0);
 
   return r;
+}
+
+void acknowledge(string messageid)
+{
+  queue->acknowledge(messageid);
+}
+
+void unacknowledge(string messageid)
+{
+  queue->unacknowledge(messageid);
 }
 
 void get_message()

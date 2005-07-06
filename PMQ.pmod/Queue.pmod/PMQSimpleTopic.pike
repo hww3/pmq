@@ -64,7 +64,7 @@ void process(Message.PMQMessage message)
 int subscribe(PMQSSession listener)
 {
  write("Queue " + name + " subscribe.\n");
-  if(listener->get_mode() == MODE_LISTEN)
+  if(listener->get_mode() & MODE_LISTEN)
   {
 //    if(sizeof(listeners) == 0)
     if(1)
@@ -75,7 +75,7 @@ int subscribe(PMQSSession listener)
       return CODE_SUCCESS;
     }
   }
-  else if(listener->get_mode() == MODE_WRITE)
+  else if(listener->get_mode() & MODE_WRITE)
   {
     writers += (< listener >);
     listener->set_queue(this);
@@ -89,7 +89,7 @@ int unsubscribe(PMQSSession listener)
 {
   write("Topic " + name + " unsubscribe.\n");
 
-  if(listener->get_mode() == MODE_LISTEN)
+  if(listener->get_mode() & MODE_LISTEN)
   {
     if(sizeof(listeners) != 0 && listeners[listener])
     {
@@ -97,7 +97,7 @@ int unsubscribe(PMQSSession listener)
       return CODE_SUCCESS;
     }
   }
-  else if(listener->get_mode() == MODE_WRITE)
+  else if(listener->get_mode() & MODE_WRITE)
   {
     if(sizeof(writers) != 0 && writers[listener])
     {

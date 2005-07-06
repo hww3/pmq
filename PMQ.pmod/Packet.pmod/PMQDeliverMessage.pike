@@ -50,6 +50,16 @@
     _message = m;
   }
 
+  void set_session(string session)
+  {
+    this->msg_data->session = session;
+  }
+
+  string get_session()
+  {
+    return this->msg_data->session;
+  }
+
   void parse(string payload)
   {
     ::parse(payload);

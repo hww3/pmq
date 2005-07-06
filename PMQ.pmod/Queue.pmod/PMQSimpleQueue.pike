@@ -8,7 +8,8 @@ Thread.Mutex lock = Thread.Mutex();
 
 ADT.Queue q;
 
-int ack = 0;
+mapping to_be_acked = ([]);
+
 int processing = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
@@ -21,9 +22,28 @@ void create(string name)
   call_out(queuesize, 5);
 }
 
+void acknowledge(string messageid)
+{
+werror("acknowledge: %O\n", messageid);
+  if(to_be_acked[messageid])
+    m_delete(to_be_acked, messageid);
+}
+
+void unacknowledge(string messageid)
+{
+  if(to_be_acked[messageid])
+  {
+    Message.PMQMessage m = to_be_acked[messageid];
+    m_delete(to_be_acked, messageid);
+    m->set_header("pmq-redelivered", "1");
+    low_post_message(m);
+  }
+}
+
 void queuesize()
 {
   werror("%d messages in %s\n", sizeof((array)q), name);
+  werror("%d messages to be acknowledged\n", sizeof(indices(to_be_acked)), name);
   call_out(queuesize,5);
 }
 
@@ -86,10 +106,14 @@ int post_message(Message.PMQMessage message, PMQSSession session)
 {
 DEBUG(1, "%O->post_message(%O, %O)\n", this, message, session);
   if(writers[session])
-  {
-    q->write(message);
-  }
+   return low_post_message(message);
   else return 0;
+  
+}
+
+int low_post_message(Message.PMQMessage message)
+{
+  q->write(message);
   call_out(process_queue, 0);
   return 1;
 }
@@ -106,10 +130,14 @@ void process_queue()
       {
         waiters[listener] = 0; // the SSession will add it back when 
                                  // it's time for another.
-        if(listener->send_message(m,  ack))
+int st = System.gettimeofday()[1];
+        if(listener->send_message(m))
         {
-          q->read();
+          m = q->read();
+          if(listener->deliver_ack())
+            to_be_acked[m->get_headers()["pmq-message-id"]] = m;
         }
+werror("time to send message: %O\n", System.gettimeofday()[1] - st);
       }
   }
 
@@ -119,7 +147,7 @@ void process_queue()
 int subscribe(PMQSSession listener)
 {
  write("Queue " + name + " subscribe.\n");
-  if(listener->get_mode() == MODE_LISTEN)
+  if(listener->get_mode() & MODE_LISTEN)
   {
     if(sizeof(listeners) == 0)
     {
@@ -129,7 +157,7 @@ int subscribe(PMQSSession listener)
       return CODE_SUCCESS;
     }
   }
-  else if(listener->get_mode() == MODE_WRITE)
+  else if(listener->get_mode() & MODE_WRITE)
   {
     writers += (< listener >);
     listener->set_queue(this);
@@ -143,7 +171,7 @@ int unsubscribe(PMQSSession listener)
 {
   write("Queue " + name + " unsubscribe.\n");
 
-  if(listener->get_mode() == MODE_LISTEN)
+  if(listener->get_mode() & MODE_LISTEN)
   {
     if(sizeof(listeners) != 0 && listeners[listener])
     {
@@ -152,7 +180,7 @@ int unsubscribe(PMQSSession listener)
       return CODE_SUCCESS;
     }
   }
-  else if(listener->get_mode() == MODE_WRITE)
+  else if(listener->get_mode() & MODE_WRITE)
   {
     if(sizeof(writers) != 0 && writers[listener])
     {

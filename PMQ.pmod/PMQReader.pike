@@ -59,7 +59,7 @@ void deliver(Message.PMQMessage m)
 {
   DEBUG(1, "PMQReader: incoming %s message from %s, %s\n", 
     m->_typeof(), m->headers["sent-from"], m->headers["pmq-message-id"]);
-
+werror("deliver called %O\n", System.gettimeofday()[1] - st);
   if(incoming_wait)
   {
     be->call_out(incoming_wait, 0, m);
@@ -68,6 +68,7 @@ void deliver(Message.PMQMessage m)
   {
     incoming_callback(m, this);
   }
+werror("deliver finished %O\n", System.gettimeofday()[1] - st);
 }
 
 //! read a message from the queue. 
@@ -86,8 +87,11 @@ void deliver(Message.PMQMessage m)
 //!
 //! @note 
 //!   the default wait time is 3600 seconds (one hour).
+int st = 0;
 Message.PMQMessage read(int|float|void wait)
 {
+ st = System.gettimeofday()[1];
+werror("locking. %O\n", System.gettimeofday()[1]-st);
   Thread.MutexKey key = lock->lock();
 
   PMQ.Message.PMQMessage msg;
@@ -100,21 +104,23 @@ Message.PMQMessage read(int|float|void wait)
     incoming_wait = 0;
     return 0;
   }
-
+werror("getting message %O\n", System.gettimeofday()[1]-st);
   session->get_message();
+werror("got message %O\n", System.gettimeofday()[1]-st);
 
 /*
   werror("mode before backend %O:\n", session->get_connection()->conn->mode());
 */
   mixed r;
-
+werror("waiting %O\n", System.gettimeofday()[1]-st);
   if(wait)
     r = be(wait);  
   else
     r = be(3600.0);
-
+werror("done waiting %O\n", System.gettimeofday()[1]-st);
   incoming_wait = 0;
   key = 0;
+st = 0;
   return msg;
 }
 
