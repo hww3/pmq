@@ -1,77 +1,155 @@
+int i = 0;
 import PMQ;
-inherit .PMQQueue;
 string name;
-
+inherit .PMQQueue;
 import PMQConstants;
 
-int ack = 0;
+Thread.Mutex lock = Thread.Mutex();
+
+ADT.Queue q;
+
+mapping to_be_acked = ([]);
+
 int processing = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
+//multiset waiters = (<>);
+
 void create(string name)
 {
   this->name = name;
-// write("Topic " + name + " created.\n");
-//  call_out(trigger_process_queue, 5);
+  q = ADT.Queue();
+  call_out(queuesize, 5);
 }
 
-void process_queue()
+void acknowledge(string messageid)
 {
+werror("acknowledge: %O\n", messageid);
+  if(to_be_acked[messageid])
+    m_delete(to_be_acked, messageid);
 }
 
-void trigger_process_queue()
+void unacknowledge(string messageid)
 {
-  if(!processing)
-    process_queue();
+  if(to_be_acked[messageid])
+  {
+    Message.PMQMessage m = to_be_acked[messageid];
+    m_delete(to_be_acked, messageid);
+    m->set_header("pmq-redelivered", "1");
+    low_post_message(m);
+  }
+}
 
-  call_out(trigger_process_queue, 5);
+void queuesize()
+{
+  werror("%d messages in %s\n", sizeof((array)q), name);
+  werror("%d messages to be acknowledged in %s\n", sizeof(indices(to_be_acked)), name);
+  call_out(queuesize,5);
+}
+/*
+int add_waiter(PMQ.PMQSSession s)
+{
+  if(!listeners[s])
+  {
+     DEBUG(2, "Session %O not already subscribed.\n");
+     return 0;
+  }
+  if(waiters[s]) return -1;
+  else
+    waiters[s] = 1;
 
+  return 1;
+}
+
+int remove_waiter(PMQ.PMQSSession s)
+{
+  if(!listeners[s])
+  {
+     DEBUG(2, "Session %O not already subscribed.\n");
+     return 0;
+  }
+  if(waiters[s])
+    waiters[s] = 0;
+
+  return 1;
+}
+*/
+// a return value of 0 indicates we're already waiting for a message.
+int get_message(PMQ.PMQSSession s)
+{
+  return 0;
+
+}
+
+// a return value of 0 indicates we're already waiting for a message.
+int unget_message(PMQ.PMQSSession s)
+{
+  return 0;
 }
 
 void start()
 {
+
 }
 
 void stop()
 {
+
 }
 
 int post_message(Message.PMQMessage message, PMQSSession session)
 {
+DEBUG(1, "%O->post_message(%O, %O)\n", this, message, session);
   if(writers[session])
-  {
-    process(message);
-  }
+   return low_post_message(message);
   else return 0;
+  
+}
+
+int low_post_message(Message.PMQMessage message)
+{
+  q->write(message);
   call_out(process_queue, 0);
   return 1;
 }
 
-void process(Message.PMQMessage message)
+void process_queue()
 {
-    processing = 1;
-  if(sizeof(listeners))
+  Thread.MutexKey key = lock->lock();
+  while(!q->is_empty())
   {
+      Message.PMQMessage m = q->read();
+	write("delivering to %d listeners\n", sizeof(listeners));
       foreach(indices(listeners);; PMQSSession listener)
       {
-        listener->send_message(message, ack);
+         // it's time for another.
+         int st = System.gettimeofday()[1];
+	// messages should be delivered to 1 and only 1 recipient.
+mixed e = catch {
+        if(listener->send_message(m))
+        {
+          if(listener->deliver_ack())
+            to_be_acked[m->get_headers()["pmq-message-id"]] = m;
+        }
+};
+if(e) werror("an error occurred while sending a message: %O\n", e[0]);
+werror("time to send message: %O\n", System.gettimeofday()[1] - st);
       }
   }
 
-  processing = 0;
+  key = 0;
 }
 
 int subscribe(PMQSSession listener)
 {
- write("Queue " + name + " subscribe.\n");
+ write("Topic " + name + " subscribe.\n");
   if(listener->get_mode() & MODE_LISTEN)
   {
-//    if(sizeof(listeners) == 0)
-    if(1)
     {
       listeners += (< listener >);
       listener->set_queue(this);
-      call_out(process_queue, 0);
+    //  call_out(process_queue, 0);
+    write("Queue " + name + " subscribe succeeded.\n");
       return CODE_SUCCESS;
     }
   }
@@ -82,7 +160,11 @@ int subscribe(PMQSSession listener)
     return CODE_SUCCESS;
   }
 
-  else return CODE_NOSLOTS;
+  else 
+  {
+    write("Topic " + name + " subscribe failed.\n");
+    return CODE_NOSLOTS;
+  }
 }
 
 int unsubscribe(PMQSSession listener)
@@ -94,6 +176,7 @@ int unsubscribe(PMQSSession listener)
     if(sizeof(listeners) != 0 && listeners[listener])
     {
       listeners -= (< listener >);
+//      waiters -= (< listener >);
       return CODE_SUCCESS;
     }
   }
@@ -110,5 +193,5 @@ int unsubscribe(PMQSSession listener)
 
 string _sprintf(mixed args)
 {
-  return "PMQTopic(" + name + ")";
+  return "PMQSimpleTopic(" + name + ")";
 }

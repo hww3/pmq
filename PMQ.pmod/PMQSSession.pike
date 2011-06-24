@@ -19,7 +19,7 @@ string _sprintf(mixed ... args)
 void start()
 {
   started = 1;
-werror("starting...\n");
+//werror("starting...\n");
   if(started) call_out(get_message, 0);
 /*
   if(queue)
@@ -48,12 +48,12 @@ return 0;
 int send_message(Message.PMQMessage message)
 {
   DEBUG(1, "%O->send_message(%O)\n", this, message);
-  werror( "%O->send_message(%O)\n", this, message);
+  //werror( "%O->send_message(%O)\n", this, message);
   int r;
 int a = deliver_ack();
 mixed c = get_connection();
 function d = c->send_message;
-werror("sending message from session %O\n", System.gettimeofday()[1] - get_connection()->st);
+//werror("sending message from session %O\n", System.gettimeofday()[1] - get_connection()->st);
   r = d(message, this, a);
 
   if(started) call_out(get_message, 0);
@@ -73,6 +73,7 @@ void unacknowledge(string messageid)
 
 void get_message()
 {
+//werror("queue: %O\n", queue);
   queue->get_message(this);  
 }
 
@@ -112,6 +113,7 @@ Queue.PMQQueue get_queue()
 
 void set_queue(Queue.PMQQueue queue)
 {
+//werror("set_queue: %O\n", queue);
   this->queue = queue;
 }
 

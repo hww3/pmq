@@ -306,7 +306,7 @@ DEBUG(1, "setting session id to %s\n", sess);
 private string generate_session_id()
 {
   string id;
-  session_no ++;
+  ++session_no ;
   id = "id" + conn->client_id + "-" + session_no;
   return id;
 }

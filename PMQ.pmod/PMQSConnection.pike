@@ -32,7 +32,7 @@ int st;
     this->connections = connections;
 
     ::create(conn, config, packets);
-    write("PMQSConnection: create!\n");
+//    write("PMQSConnection: create!\n");
   }
 
   void go()
@@ -78,7 +78,7 @@ int st;
 
   int send_message(Message.PMQMessage message, PMQSSession session, int ack)
   {
-werror("send_message %O\n", System.gettimeofday()[0] - st);
+//werror("send_message %O\n", System.gettimeofday()[0] - st);
     Packet.PMQDeliverMessage p = Packet.PMQDeliverMessage();
     string queue = session->get_queue()->name;
     string s = session->get_session_id();
@@ -90,8 +90,12 @@ DEBUG(5, "Message: %s\n", (string)message);
 
     p->set_pmqmessage(message);
 
-     if(catch(send_packet(p)))
+     mixed e = catch(send_packet(p));
+     if(e)
+     {
+werror("error sending message: %O\n", e[0]);
        return 0;
+     }
      else
        return 1;
   }
@@ -165,9 +169,9 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
       if(object_program(packet) == Packet.PMQGetMessage)
       {
 st = System.gettimeofday()[1];
-werror("got packet %O\n", System.gettimeofday()[1] - st);
+//werror("got packet %O\n", System.gettimeofday()[1] - st);
         PMQSSession s = get_session_by_id(packet->get_session(), MODE_LISTEN);
-werror("got session %O\n", System.gettimeofday()[1] - st);
+//werror("got session %O\n", System.gettimeofday()[1] - st);
 
         if(!s) 
         {
@@ -175,9 +179,9 @@ werror("got session %O\n", System.gettimeofday()[1] - st);
           return;
         }
        
-werror("getting message %O\n", System.gettimeofday()[1] - st);
+//werror("getting message %O\n", System.gettimeofday()[1] - st);
         s->get_message();
-werror("done getting message %O\n", System.gettimeofday()[1] - st);
+//werror("done getting message %O\n", System.gettimeofday()[1] - st);
 
       }
 

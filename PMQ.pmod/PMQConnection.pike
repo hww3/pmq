@@ -125,7 +125,7 @@ remote_close);
 
   void remote_close()
   {
-write("remote close\n");
+//write("remote close\n");
     connection_state = CONNECTION_DISCONNECT;
     DEBUG(4, "remote close\n");
     destruct();    
@@ -272,7 +272,7 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     DEBUG(5, "parse_packet: created a packet %O\n", packet);
 
     packet->parse(packet_payload);
-
+//werror("have packet: %O\n", packet);
     backend->call_out(handle_packet, 0, packet);
 
     return;
@@ -285,9 +285,10 @@ DEBUG(3, "parse_packet(%d)\n", sizeof(packet_data));
     return 0;
   }
 
-  void|int handle_packet(Packet.PMQPacket packet)
-  {
+void|int handle_packet(Packet.PMQPacket packet)
+{
     DEBUG(4, sprintf("%O->handle_packet(%O)\n", this, packet));
+//werror("have packet: %O %O\n", packet, packet->get_reply_id());
     if(packet->get_reply_id())
     {
       if(incoming_waiters[packet->get_reply_id()]) 

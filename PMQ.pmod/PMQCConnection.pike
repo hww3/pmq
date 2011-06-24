@@ -23,8 +23,8 @@ int acked= 0;
 
 void stateofread()
 {
-   werror("read buffer: %O\n", read_buffer);
-   werror("mode: %O\n", conn->mode());
+   //werror("read buffer: %O\n", read_buffer);
+   //werror("mode: %O\n", conn->mode());
     backend->call_out(stateofread, 5);
 
 }
@@ -128,7 +128,7 @@ void stateofread()
     int r = ::handle_packet(packet);
    
     if(r) return;
-
+    
     if(object_program(packet) == Packet.PMQGoodbye)
     {
       DEBUG(3, sprintf("%O: got Goodbye.\n", this));
@@ -169,7 +169,7 @@ string generate_client_id(Packet.PMQSHello packet)
 {
   string sess = "";
 
-  sess = Crypto.MD5()->update("PMQ" + time() + gethostname() + conn->query_address())->digest();
+  sess = Crypto.MD5()->update("PMQ" + Crypto.Random.random_string(10) +  time() + gethostname() + conn->query_address())->digest();
 
   sess = String.string2hex(sess);
 

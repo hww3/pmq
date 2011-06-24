@@ -24,7 +24,7 @@ void create(string name)
 
 void acknowledge(string messageid)
 {
-werror("acknowledge: %O\n", messageid);
+//werror("acknowledge: %O\n", messageid);
   if(to_be_acked[messageid])
     m_delete(to_be_acked, messageid);
 }
@@ -154,7 +154,7 @@ int subscribe(PMQSSession listener)
       listeners += (< listener >);
       listener->set_queue(this);
     //  call_out(process_queue, 0);
-    write("Queue " + name + " subscribe succeeded.\n");
+    //write("Queue " + name + " subscribe succeeded.\n");
       return CODE_SUCCESS;
     }
   }

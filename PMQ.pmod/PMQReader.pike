@@ -8,6 +8,8 @@ ADT.Queue incoming_queue;
 function incoming_wait = 0;
 Pike.Backend be = Pike.Backend();
 
+constant requires_get = 1;
+
 void create()
 {
   incoming_queue = ADT.Queue();
@@ -59,7 +61,7 @@ void deliver(Message.PMQMessage m)
 {
   DEBUG(1, "PMQReader: incoming %s message from %s, %s\n", 
     m->_typeof(), m->headers["sent-from"], m->headers["pmq-message-id"]);
-werror("deliver called %O\n", System.gettimeofday()[1] - st);
+//werror("deliver called %O\n", System.gettimeofday()[1] - st);
   if(incoming_wait)
   {
     be->call_out(incoming_wait, 0, m);
@@ -68,7 +70,7 @@ werror("deliver called %O\n", System.gettimeofday()[1] - st);
   {
     incoming_callback(m, this);
   }
-werror("deliver finished %O\n", System.gettimeofday()[1] - st);
+//werror("deliver finished %O\n", System.gettimeofday()[1] - st);
 }
 
 //! read a message from the queue. 
@@ -88,15 +90,17 @@ werror("deliver finished %O\n", System.gettimeofday()[1] - st);
 //! @note 
 //!   the default wait time is 3600 seconds (one hour).
 int st = 0;
+
 Message.PMQMessage read(int|float|void wait)
 {
  st = System.gettimeofday()[1];
-werror("locking. %O\n", System.gettimeofday()[1]-st);
+//werror("locking. %O\n", System.gettimeofday()[1]-st);
   Thread.MutexKey key = lock->lock();
 
   PMQ.Message.PMQMessage msg;
 
-  incoming_wait = lambda(object m){ msg = m; };
+  if(incoming_queue->peek()) return incoming_queue->read();
+  incoming_wait = lambda(object m){ incoming_queue->write(m); };
 
   if(!session)
   {
@@ -104,24 +108,30 @@ werror("locking. %O\n", System.gettimeofday()[1]-st);
     incoming_wait = 0;
     return 0;
   }
-werror("getting message %O\n", System.gettimeofday()[1]-st);
+//werror("getting message %O\n", System.gettimeofday()[1]-st);
+if(requires_get)
   session->get_message();
-werror("got message %O\n", System.gettimeofday()[1]-st);
+//werror("got message %O\n", System.gettimeofday()[1]-st);
 
 /*
   werror("mode before backend %O:\n", session->get_connection()->conn->mode());
 */
   mixed r;
-werror("waiting %O\n", System.gettimeofday()[1]-st);
+do
+{
+
+//werror("waiting %O\n", System.gettimeofday()[1]-st);
   if(wait)
-    r = be(wait);  
+    r = be(wait/2);  
   else
-    r = be(3600.0);
-werror("done waiting %O\n", System.gettimeofday()[1]-st);
-  incoming_wait = 0;
+    r = be(1800.0);
+}while(!incoming_queue->peek());
+//werror("done waiting %O\n", System.gettimeofday()[1]-st);
+object mesg = incoming_queue->read();
+//  incoming_wait = 0;
   key = 0;
 st = 0;
-  return msg;
+  return mesg;
 }
 
 object get_session()

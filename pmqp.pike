@@ -30,6 +30,7 @@ int i = 0;
   do
   {
     Message.PMQMessage m = reader->read();
+werror("got message: %O\n", m);
 i++;
 if(i%100 == 0) write("got " + i + " messages.\n");
   }
