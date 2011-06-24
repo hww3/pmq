@@ -16,7 +16,7 @@ int main(int argc, array argv)
 void create_connection()
 {
 mixed g = gauge{
-for(int i = 0; i < 100; i++){
+for(int i = 0; i < 2; i++){
 if(client) destruct(client);
   write(sprintf("Connecting to pmqd... "));
   client = PMQClient("pmq://127.0.0.1:9999");
@@ -38,12 +38,17 @@ void post()
 {
  gauge(do_post());
 }
+int x = 0;
+
 void do_post()
-{  string s = "<?xml version=\"1.0\" ?><t><e>hi</e></t>";
+{
 int i = 0;
     reader = client->get_queue_writer("wunderbar");
-for (int k = 0; k < 10; k++)
+for (int k = 0; k < 5; k++)
 {
+                                             
+  string s = "<t><e>hi+" + x + "</e></t>"; 
+x++;   
     object m = Message.PMQMessage();
     m->set_body(s);
     reader->write(m);
