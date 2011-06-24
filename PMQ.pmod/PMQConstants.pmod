@@ -26,7 +26,7 @@ constant TYPE_PTP = 1;
 //!
 constant TYPE_TOPIC = 2;
 
-int debug_level = 10;
+int debug_level = 0;
 
 //!
 void DEBUG_LEVEL(int level)
