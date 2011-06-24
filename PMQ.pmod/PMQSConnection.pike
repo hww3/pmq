@@ -13,8 +13,6 @@ int st;
 
   PMQSSession get_session_by_id(string session_id, int mode)
   {
-    mixed sess;
-
     if(mode == MODE_LISTEN)
     {
       foreach(indices(listen_sessions);;PMQSSession s)

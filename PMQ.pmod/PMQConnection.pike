@@ -332,8 +332,6 @@ DEBUG(1, "%O->send_packet(%O)\n", this, packet);
   Packet.PMQPacket send_packet_await_response(Packet.PMQPacket packet, 
           int|void keep)
   {
-    int n, my_look_len;
-
     if(!conn->is_open())
     {
       conn->close();
@@ -341,7 +339,6 @@ DEBUG(1, "%O->send_packet(%O)\n", this, packet);
 
     if(this->conn)
     {
-      string dta;
       DEBUG(4, sprintf("%O->send_packet_await_response(%O)\n", this, packet));
 
       packet->set_id("c" + (string)random(10e+5));

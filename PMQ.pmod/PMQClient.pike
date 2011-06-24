@@ -174,7 +174,7 @@ DEBUG(1, "setting session id to %s\n", sess);
   }
   if(resp->get_code() != CODE_SUCCESS)
   {
-    error("subscribe failed.\n");
+    error("subscribe failed: %O.\n", resp->get_code());
   }
 
   PMQQueueReader r = PMQQueueReader();

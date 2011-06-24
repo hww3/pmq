@@ -43,7 +43,7 @@ void unacknowledge(string messageid)
 void queuesize()
 {
   werror("%d messages in %s\n", sizeof((array)q), name);
-  werror("%d messages to be acknowledged\n", sizeof(indices(to_be_acked)), name);
+  werror("%d messages to be acknowledged in %s\n", sizeof(indices(to_be_acked)), name);
   call_out(queuesize,5);
 }
 
@@ -125,17 +125,18 @@ void process_queue()
   {
       Message.PMQMessage m = q->peek();
 
-      // there should only ever be one listener.
       foreach(indices(waiters);; PMQSSession listener)
       {
         waiters[listener] = 0; // the SSession will add it back when 
                                  // it's time for another.
 int st = System.gettimeofday()[1];
+	// messages should be delivered to 1 and only 1 recipient.
         if(listener->send_message(m))
         {
           m = q->read();
           if(listener->deliver_ack())
             to_be_acked[m->get_headers()["pmq-message-id"]] = m;
+	  break;
         }
 werror("time to send message: %O\n", System.gettimeofday()[1] - st);
       }
@@ -149,11 +150,11 @@ int subscribe(PMQSSession listener)
  write("Queue " + name + " subscribe.\n");
   if(listener->get_mode() & MODE_LISTEN)
   {
-    if(sizeof(listeners) == 0)
     {
       listeners += (< listener >);
       listener->set_queue(this);
     //  call_out(process_queue, 0);
+    write("Queue " + name + " subscribe succeeded.\n");
       return CODE_SUCCESS;
     }
   }
@@ -164,7 +165,11 @@ int subscribe(PMQSSession listener)
     return CODE_SUCCESS;
   }
 
-  else return CODE_NOSLOTS;
+  else 
+  {
+    write("Queue " + name + " subscribe failed.\n");
+    return CODE_NOSLOTS;
+  }
 }
 
 int unsubscribe(PMQSSession listener)

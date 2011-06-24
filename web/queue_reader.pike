@@ -1,7 +1,10 @@
-PMQ.PMQQueueReader reader = 0;
+//PMQ.PMQQueueReader reader = 0;
 PMQ.PMQProperties config;
-PMQ.PMQClient client = 0;
+//PMQ.PMQClient client = 0;
 import PMQ.PMQConstants;
+
+#define CLIENT id->misc->session_variables->client
+#define READER id->misc->session_variables->reader
 
 void create()
 {
@@ -11,22 +14,19 @@ void create()
 
 void destroy()
 {
-  write("destroying queue reader\n");
-  destruct(reader);
-  destruct(client);
 }
 
 int connect(object id)
 {
 werror("connecting?\n");
-  if(! client)
+  if(!CLIENT)
   {
-    client = PMQ.PMQClient("pmq://127.0.0.1:9999");
-    if(!client->connect()) return 0;
+    CLIENT = PMQ.PMQClient("pmq://127.0.0.1:9999");
+    if(!CLIENT->connect()) return 0;
 werror("connected.\n");
     string qn = id->misc->path_info;
     if(qn[0..0] == "/") qn = qn[1..];
-    reader = client->get_queue_reader(qn);
+    READER = CLIENT->get_queue_reader(qn);
    return 1;
    }
 
@@ -42,23 +42,23 @@ werror("*** parse!\n");
 
    if(id->variables->shutdown)
    {
-     reader = 0;
-     client->disconnect();
-     client = 0;
+     READER = 0;
+     CLIENT->disconnect();
+     CLIENT = 0;
      return "ok";
    }
 
    if(!connect(id))
    {
-     client = 0;
+     CLIENT = 0;
      return "PMQD not available.";
    }
  
-  if(catch(m = reader->read()))
+  if(catch(m = READER->read()))
   {
-    client = 0;
-    reader = 0;
-    return "caught an error!";
+    CLIENT = 0;
+    READER = 0;
+//    return "caught an error!";
   }
   else 
     return (string)m;
@@ -66,12 +66,4 @@ werror("*** parse!\n");
 
 void stop()
 {
-  if(client)
-  {
-    client->disconnect();
-    destruct(client);
-  } 
-
-  if(reader)
-    destruct(reader);
 }
