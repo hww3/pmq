@@ -37,6 +37,6 @@ void DEBUG_LEVEL(int level)
 void DEBUG(int level, mixed ... args)
 {
 //return;
-  if(level <= debug_level)
-    werror(@args);
+if(debug_level && (debug_level >= level))
+   werror(@args);
 }
