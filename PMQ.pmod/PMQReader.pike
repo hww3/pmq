@@ -99,8 +99,14 @@ Message.PMQMessage read(int|float|void wait)
 
   PMQ.Message.PMQMessage msg;
 
-  if(incoming_queue->peek()) return incoming_queue->read();
-  incoming_wait = lambda(object m){ incoming_queue->write(m); };
+  if(incoming_queue->peek()) 
+  {
+    object m;
+    m = incoming_queue->read();
+    key = 0;
+    return m;
+  }  
+incoming_wait = lambda(object m){ incoming_queue->write(m); };
 
   if(!session)
   {

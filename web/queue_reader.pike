@@ -8,7 +8,7 @@ import PMQ.PMQConstants;
 
 void create()
 {
-  write("created queue reader\n");
+PMQ.PMQConstants.DEBUG_LEVEL(5);
   gc();
 }
 
@@ -22,10 +22,9 @@ werror("connecting?\n");
   if(!CLIENT)
   {
     CLIENT = PMQ.PMQClient("pmq://127.0.0.1:9999");
-    if(!CLIENT->connect()) return 0;
+    if(!CLIENT->connect()) 
+	return 0;
 werror("connected.\n");
-//    string qn = id->misc->path_info;
-//    if(qn[0..0] == "/") qn = qn[1..];
    return 1;
    }
 
@@ -35,11 +34,13 @@ werror("connected.\n");
 
 int listen(object id, string destination)
 {
-    READER = CLIENT->get_queue_reader(destination);
+   if(READER) destruct(READER);
+    READER = CLIENT->get_topic_reader(destination);
 }
 
 mixed parse(object id)
 {
+  gc();
    PMQ.Message.PMQMessage m;
 
 werror("*** parse: %O\n\n", id->variables); 
@@ -47,7 +48,7 @@ werror("*** parse: %O\n\n", id->variables);
    if(timeout) timeout/=1000;
    else timeout=30;
 
-   if(id->variables->shutdown)
+   if(CLIENT && id->variables->shutdown)
    {
      READER = 0;
      CLIENT->disconnect();
@@ -56,27 +57,63 @@ werror("*** parse: %O\n\n", id->variables);
    }
    if(id->variables->message) id->misc->session_variables->message = id->variables->message;
 
-   if(!CLIENT && !connect(id))
+   if(!CLIENT)
    {
-     CLIENT = 0;
-     return "PMQD not available.";
+     if(!connect(id))
+     {
+       CLIENT = 0;
+       return "PMQD not available.";
+     }
+     sleep(2);
    }
 
-   if(id->variables->type == "listen")     
+   if(CLIENT && id->variables->type == "listen")     
    {                                       
      listen(id, id->variables->destination);
+     return "ok";
    }  
-  
-  if(READER && catch(m = READER->read(timeout)))
+
+  if(!READER) return "no reader specified";
+  string messages = "";
+/*
+  do
   {
-    CLIENT = 0;
-    READER = 0;
-//    return "caught an error!";
+    m = READER->read(1);
+    if(m)
+    {
+      messages += format_message(m);
+    }
   }
-  else 
-		    return Caudium.HTTP.string_answer("<?xml version=\"1.0\"?><ajax-response><messages id='" + (id->misc->session_variables->message||"id") + "'><message>" + (m?m->get_body():"") + "</message></messages></ajax-response>", "text/xml");
+  while(m);
+*/
+  if(!sizeof(messages))
+  { 
+    m = 0;
+    if(READER && catch(m = READER->read(timeout)))
+    {
+      CLIENT = 0;
+      READER = 0;
+    }
+    else if(m)
+    {
+      messages += format_message(m);
+    }
+  }
+werror("messages: %O\n", messages);
+  return Caudium.HTTP.string_answer("<?xml version=\"1.0\"?><ajax-response><messages id='" + (id->misc->session_variables->message||"id") + "'><message>" + messages + "</message></messages></ajax-response>", "text/xml");
 }
 
+string format_message(object m)
+{
+  string message = "<message";
+
+  foreach(m->headers; string k; string v)
+    message += (" " + lower_case(k) + "=\"" + v + "\"");
+  message += ">";
+  message += m->get_body();
+  message += "</message>";
+  return message;
+}
 void stop()
 {
 }
