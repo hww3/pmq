@@ -81,6 +81,13 @@ void deliver(Message.PMQMessage m)
 //werror("deliver finished %O\n", System.gettimeofday()[1] - st);
 }
 
+//! returns a flag that indicates whether there are messages
+//! already delivered and waiting to be read.
+int have_messages()
+{
+  return !incoming_queue->is_empty();
+}
+
 //! read a message from the queue. 
 //!
 //! an internal queue of messages delivered to this client is kept

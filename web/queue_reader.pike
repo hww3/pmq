@@ -21,7 +21,7 @@ int connect(object id)
 werror("connecting?\n");
   if(!CLIENT)
   {
-    CLIENT = PMQ.PMQClient("pmq://127.0.0.1:9999");
+    CLIENT = PMQ.PMQClient("pmq://127.0.0.1:9998");
     if(!CLIENT->connect()) 
 	return 0;
 werror("connected.\n");
@@ -53,16 +53,17 @@ werror("*** parse: %O\n\n", id->variables);
      READER = 0;
      CLIENT->disconnect();
      CLIENT = 0;
-     return "ok";
+     return "<ajax-response>ok</ajax-response>";
    }
    if(id->variables->message) id->misc->session_variables->message = id->variables->message;
 
+mixed err = catch {
    if(!CLIENT)
    {
      if(!connect(id))
      {
        CLIENT = 0;
-       return "PMQD not available.";
+       throw(Error.Generic("PMQD not available."));
      }
      sleep(2);
    }
@@ -70,37 +71,52 @@ werror("*** parse: %O\n\n", id->variables);
    if(CLIENT && id->variables->type == "listen")     
    {                                       
      listen(id, id->variables->destination);
-     return "ok";
+     return "<ajax-response>ok</ajax-response>";
    }  
 
-  if(!READER) return "no reader specified";
+  if(!READER) throw(Error.Generic("no reader specified"));
   string messages = "";
-/*
-  do
+
+  while(READER->have_messages())
   {
-    m = READER->read(1);
+werror("READING\n");    
+m = READER->read(0.0);
+werror("GOT: %O\n", m);
     if(m)
     {
       messages += format_message(m);
     }
   }
-  while(m);
-*/
+
   if(!sizeof(messages))
   { 
     m = 0;
-    if(READER && catch(m = READER->read(timeout)))
+    mixed erro;
+
+    if(READER)
     {
-      CLIENT = 0;
-      READER = 0;
-    }
-    else if(m)
-    {
-      messages += format_message(m);
+      erro = catch(m = READER->read(timeout));
+      if(erro)
+      {
+        CLIENT = 0;
+        READER = 0;
+        throw(Error.Generic(erro[0]));
+      }
+   
+      if(m)
+      {
+        messages += format_message(m);
+      }
     }
   }
-werror("messages: %O\n", messages);
+  werror("messages: %O\n", messages);
   return Caudium.HTTP.string_answer("<?xml version=\"1.0\"?><ajax-response><messages id='" + (id->misc->session_variables->message||"id") + "'><message>" + messages + "</message></messages></ajax-response>", "text/xml");
+};
+if(err)
+{
+report_error(describe_backtrace(err));
+  return "<ajax-error>" + err[0] + "</ajax-error>";
+}
 }
 
 string format_message(object m)
