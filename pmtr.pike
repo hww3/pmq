@@ -1,6 +1,6 @@
 import PMQ;
 import PMQConstants;
-PMQReader reader;
+//PMQReader reader;
 PMQProperties config;
 PMQClient client;// = PMQClient("pmq://127.0.0.1:9999");
 
@@ -19,23 +19,26 @@ void create_connection()
   call_out(run, 0);
   return;  
 }
-
+ PMQReader reader = 0;
+int x;
 void run()
 {
-  reader = client->get_topic_reader("observations", MODE_DELIVER_ACK);
-gc();
+  if(!reader){
+reader =  client->get_topic_reader("observations", MODE_DELIVER_ACK);
+reader->start();}
+//gc();
   call_out(run,5);
   int i = 0;
-  write("starting reader...\n");
+//  write("starting reader...\n");
+x++;
+if(x > 3)
   do
   {
     Message.PMQMessage m = reader->read();
 write("message %O: %O\n",++i, m);
 
   }
-  while(i < 2);
-
-gc();
-  call_out(run, 5);
+  while(i<5);
+destruct(reader);
 }
 

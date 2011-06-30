@@ -2,6 +2,7 @@ import PMQ;
 import PMQConstants;
 
 Thread.Mutex lock = Thread.Mutex();
+//array session;
 object session;
 function incoming_callback;
 ADT.Queue incoming_queue;
@@ -12,7 +13,9 @@ constant requires_get = 1;
 
 void create()
 {
+//  session = allocate(1);
   incoming_queue = ADT.Queue();
+//  set_weak_flag(session, Pike.WEAK);
 }
 
 void session_abort(object s)
@@ -31,12 +34,17 @@ void session_abort(object s)
 //!
 void start()
 {
+/*
+
   if(!incoming_callback)
   {
     error("start() called without incoming callback set.\n");
     return;
   }
   session->start();  
+*/
+incoming_wait = lambda(object m){ incoming_queue->write(m); };
+
 }
 
 //!
@@ -99,14 +107,15 @@ Message.PMQMessage read(int|float|void wait)
 
   PMQ.Message.PMQMessage msg;
 
-  if(incoming_queue->peek()) 
+  if(!incoming_queue->is_empty()) 
   {
+//werror("queue has items!\n");
     object m;
     m = incoming_queue->read();
     key = 0;
     return m;
   }  
-incoming_wait = lambda(object m){ incoming_queue->write(m); };
+if(!incoming_wait)incoming_wait = lambda(object m){ incoming_queue->write(m); };
 
   if(!session)
   {
@@ -120,7 +129,7 @@ if(requires_get)
 //werror("got message %O\n", System.gettimeofday()[1]-st);
 
 /*
-  werror("mode before backend %O:\n", session->get_connection()->conn->mode());
+  werror("mode before backend %O:\n", session[0]->get_connection()->conn->mode());
 */
   mixed r;
 do
@@ -131,7 +140,7 @@ do
     r = be(wait/2);  
   else
     r = be(1800.0);
-}while(!incoming_queue->peek());
+}while(incoming_queue->is_empty());
 //werror("done waiting %O\n", System.gettimeofday()[1]-st);
 object mesg = incoming_queue->read();
 //  incoming_wait = 0;

@@ -6,6 +6,7 @@ int acked= 0;
 
   PMQIdentity identity;
 
+
   int get_mode()
   {
     return MODE_CLIENT;
@@ -32,6 +33,8 @@ void stateofread()
   {
     ::create(conn, config, packets, b);
 
+    set_weak_flag(sessions, Pike.WEAK);
+ 
     Packet.PMQPacket r;
 
     this->identity = identity;
@@ -53,7 +56,7 @@ void stateofread()
       if(!selected_version)
       {
         handle_protocol_error();
-        return;
+        return 0;
       }
 
       protocol_version = selected_version;
@@ -127,13 +130,13 @@ void stateofread()
 
     int r = ::handle_packet(packet);
    
-    if(r) return;
+    if(r) return 0;
     
     if(object_program(packet) == Packet.PMQGoodbye)
     {
       DEBUG(3, sprintf("%O: got Goodbye.\n", this));
       destruct();
-      return;
+      return 0;
     }
     else if(connection_state == CONNECTION_RUNNING)
     {
@@ -144,7 +147,7 @@ void stateofread()
         if(!sess) werror( "Misdelivered message for session %O\n", 
                         m->headers);
         sess->deliver(m, packet->get_id());
-        return;
+        return 0;
       }
 
       if(object_program(packet) == Packet.PMQSessionResponse)

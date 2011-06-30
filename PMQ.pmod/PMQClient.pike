@@ -189,6 +189,9 @@ DEBUG(1, "setting session id to %s\n", sess);
   r->set_session(s);
   return r;
 }
+class x
+{
+}
 //!
 PMQTopicReader get_topic_reader(string topic, int|void flags)
 {
@@ -226,8 +229,8 @@ DEBUG(1, "setting session id to %s\n", sess);
   s->set_mode(flags);
 
   r->set_topic(topic);
-  r->set_session(s);
 
+  r->set_session(s);
   return r;
 }
 

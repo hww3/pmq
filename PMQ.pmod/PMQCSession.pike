@@ -8,11 +8,14 @@ int stopped = 0;
 multiset listeners = (<>);
 multiset writers = (<>);
 
-PMQCConnection conn;
+array conn;
 
 void create()
 {
-
+ conn = allocate(1);
+ set_weak_flag(conn, Pike.WEAK);
+ set_weak_flag(listeners, Pike.WEAK);
+ set_weak_flag(writers, Pike.WEAK);
 }
 
 void set_mode(int m)
@@ -40,7 +43,7 @@ void set_connection(PMQCConnection conn)
   if(conn)
   {
     conn->add_session(this);
-    this->conn = conn;
+    this->conn[0] = conn;
   }
   else 
   {
@@ -50,7 +53,7 @@ void set_connection(PMQCConnection conn)
 
 PMQCConnection get_connection()
 {  
-  return this->conn;
+  return this->conn[0];
 }
 
 void set_session_id(string session_id)
@@ -65,7 +68,7 @@ string get_session_id()
 
 void unsubscribe()
 {
-  foreach(indices(listeners + writers);; object o)
+  foreach(listeners + writers; object o;)
   {
     if(o->get_queue)
     {
@@ -74,7 +77,7 @@ void unsubscribe()
       p->set_queue(o->get_queue());
       p->set_session(get_session_id());
   
-      conn->send_packet(p);
+      conn[0]->send_packet(p);
 
     }
     else if(o->get_topic)
@@ -84,7 +87,7 @@ void unsubscribe()
       p->set_topic(o->get_topic());
       p->set_session(get_session_id());
   
-      conn->send_packet(p);
+      conn[0]->send_packet(p);
    
     }
   }
@@ -127,7 +130,7 @@ void stop()
 
 void deliver(Message.PMQMessage m, mixed reply_id)
 {
-  foreach(indices(listeners);; PMQQueueReader r)
+  foreach((listeners); PMQQueueReader r;)
   {
     r->deliver(m);
   }
@@ -148,7 +151,7 @@ void set_listener(PMQQueueReader r)
 void destroy()
 {
   DEBUG(4, "PMQCSession(%s)->destroy()\n", get_session_id());
-  foreach(indices(listeners + writers), object o)
+  foreach(listeners + writers; object o;)
     o->session_abort(this);
 
   stop();

@@ -132,7 +132,7 @@ DEBUG(1, "%O->handle_packet(%O)\n", this, packet);
 
         if(!s)
         {
-          werror("PMQSConnection: unknown session in start command!\n");
+          werror("PMQSConnection: unknown session in ack command!\n");
           return;
         }
 
