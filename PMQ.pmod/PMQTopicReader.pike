@@ -1,7 +1,7 @@
 import PMQ;
 inherit PMQReader;
 
-//constant requires_get = 0;
+constant requires_get = 0;
 
 string topic;
 

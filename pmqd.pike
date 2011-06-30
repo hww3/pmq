@@ -62,7 +62,7 @@ void setup_port()
     if(!port) port = 9999;
   
     werror("starting pmqd with a listener on " + port + ".\n");
-    this->port->bind(9999, accept_connection);  
+    this->port->bind(port, accept_connection);  
   }
 
   else

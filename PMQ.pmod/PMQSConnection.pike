@@ -251,7 +251,8 @@ st = System.gettimeofday()[1];
          object_program(packet) == Packet.PMQTUnsubscribe)
       {
         int type = 0;
-        if(object_program(packet) == Packet.PMQTSubscribe)
+        if(object_program(packet) == Packet.PMQTSubscribe ||
+	   object_program(packet) == Packet.PMQTUnsubscribe)
           type = 1;
 
         string queue_name;

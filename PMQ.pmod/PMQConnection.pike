@@ -322,7 +322,7 @@ DEBUG(1, "%O->send_packet(%O)\n", this, packet);
       string pkt = (string)packet;
       int towrite = strlen(pkt);
 
-      DEBUG(4, sprintf("%O->send_packet(%O)\n", this, packet));
+      DEBUG(4, sprintf("%O->send_packet(%O) writing\n", this, packet));
 
       do
        written+=conn->write(pkt);

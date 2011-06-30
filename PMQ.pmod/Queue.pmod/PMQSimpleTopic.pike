@@ -169,7 +169,7 @@ int subscribe(PMQSSession listener)
 
 int unsubscribe(PMQSSession listener)
 {
-  write("Topic " + name + " unsubscribe.\n");
+  write("Topic " + name + " unsubscribe requested.\n");
 
   if(listener->get_mode() & MODE_LISTEN)
   {

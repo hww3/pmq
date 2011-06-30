@@ -119,6 +119,8 @@ int disconnect()
 
 void destroy()
 {
+werror("%O\n", backtrace());
+DEBUG(2, "PMQClient()->destroy()\n");
   if(conn)
   {
     destruct(conn);

@@ -3,6 +3,7 @@ import PMQConstants;
 
 int mode;
 string session_id;
+int stopped = 0;
 
 multiset listeners = (<>);
 multiset writers = (<>);
@@ -37,10 +38,11 @@ int submit_ack()
 void set_connection(PMQCConnection conn)
 {
   if(conn)
+  {
     conn->add_session(this);
-  this->conn = conn;
-
-  if(! this->conn)
+    this->conn = conn;
+  }
+  else 
   {
     destruct();
   }
@@ -91,11 +93,14 @@ void unsubscribe()
 
 void start()
 {
+  if(!stopped) return;
+
   Packet.PMQStartSession p = Packet.PMQStartSession();
 
   p->set_session(get_session_id());
 
   get_connection()->send_packet(p);
+  stopped = 0;
 }
 
 void get_message()
@@ -109,12 +114,15 @@ void get_message()
 
 void stop()
 {
+  if(stopped) return;
+
   Packet.PMQStopSession p = Packet.PMQStopSession();
 
   p->set_session(get_session_id());
  
   if(get_connection())
     get_connection()->send_packet(p);
+  stopped = 1;
 }
 
 void deliver(Message.PMQMessage m, mixed reply_id)
