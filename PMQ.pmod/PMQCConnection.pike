@@ -5,7 +5,7 @@ int acked= 0;
   multiset sessions = (<>);
 
   PMQIdentity identity;
-
+  function reconnect_attempt_func;
 
   int get_mode()
   {
@@ -22,26 +22,112 @@ int acked= 0;
     return 0;
   }
 
-void stateofread()
-{
+  void stateofread()
+  {
    //werror("read buffer: %O\n", read_buffer);
    //werror("mode: %O\n", conn->mode());
     backend->call_out(stateofread, 5);
+  }
 
-}
+  int attempt_reconnect()
+  {
+    if(reconnect_attempt_func)
+    {
+      reconnect_attempt_func(this);
+      return 1;
+    }
+  }
+
+/*
+  int attempt_reconnect()
+  {
+    // things to do:
+    // second, clear the state and reset any network level queues
+    // third, attempt to actually reconnect periodically
+    // fourth, if we reconnect, then we should resubscribe
+    // and patch up the existing readers.
+    object newconn;
+
+    clear_state();
+    newconn = create_connection();
+    conn = newconn;
+    setup_backend();
+    negotiate_connection();
+    renew_subscriptions();
+  }
+  
+  void setup_backend()
+  { 
+    // if the backend handler thread has quit, restart it.
+    if(backend_running == 0)
+    {
+      DEBUG(2, "setting up backend handler thread for client connection\n");
+      handler = Thread.Thread(do_run_backend);
+    }
+  }
+
+  void clear_state()
+  {
+    in_net_queue->flush(); 
+    out_net_queue->flush(); 
+
+    network_state = NETWORK_STATE_START;
+    connection_state = CONNECTION_START;
+  }
+
+  // make 3 attempts then give up.
+  Stdio.File create_connection()
+  {
+    int i = 1;
+    int connected = 0;
+
+    string addr;
+    int port;
+    object newconn;
+
+    [addr, port] = array_sscanf(conn->query_address(), "%s %d");
+
+    do
+    {
+      DEBUG(1, "attempting to connect to " + addr + " port " + port + "\n");
+      newconn = Stdio.File();
+      
+      if(newconn->connect(addr, port)) connected = 1;
+      i++;      
+      sleep(i*5);
+    } while(!connected && i <= 3);
+    
+    if(!connected) {
+      DEBUG(1, "unable to connect to " + addr + " port " + port + "\n");
+      throw(Error.Generic("unable to reconnect to pmqd; giving up.\n"));
+    }
+    else DEBUG(1, "successful re-connect to " + addr + " port " + port + "\n");
+    return newconn;
+  }
+
+  void renew_subscriptions()
+  {
+  }
+*/
   void create(Stdio.File conn, PMQProperties config, PMQIdentity identity, mapping packets, void|Pike.Backend b)
   {
     ::create(conn, config, packets, b);
 
     set_weak_flag(sessions, Pike.WEAK);
  
-    Packet.PMQPacket r;
-
     this->identity = identity;
     DEBUG(4, "PMQCConnection: create!\n");
+
+    negotiate_connection();
+  }
+
+  void negotiate_connection() 
+  {
+    Packet.PMQPacket r;
+
     r = collect_packet("welcome", 5);
 
-    DEBUG(3, "%O->create(): got packet %O\n", this, r);
+    DEBUG(3, "%O->negotiate_connection(): got packet %O\n", this, r);
 
     if(object_program(r) == Packet.PMQSHello)
     {
@@ -66,10 +152,8 @@ void stateofread()
       p->set_version(selected_version);    
       p->set_client_id(client_id);    
       r = send_packet_await_response(p);
-      DEBUG(3, "%O->create(): got packet %O\n", this, r);
+      DEBUG(3, "%O->negotiate_connection(): got packet %O\n", this, r);
       connection_state = CONNECTION_SENT_CHELLO;
-
-     
     }
     else
     {
@@ -89,7 +173,6 @@ void stateofread()
     }
 
     set_conn_callbacks_nonblocking();
-
   }
 
   void quit()

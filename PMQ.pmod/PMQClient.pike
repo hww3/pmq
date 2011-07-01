@@ -13,6 +13,7 @@ PMQIdentity identity;
 Pike.Backend backend;
 string url;
 int session_no;
+int auto_reconnect = 1;
 
 //! create a client object. a client can be connected to one PMQ
 //! server at a time, with multiple queue sessions running over it.
@@ -76,7 +77,7 @@ int connect()
   if(!backend) backend = Pike.Backend();
 
   array h = decode_url(url);
-werror("%O", h);
+
   if(sizeof(h) == 2)
     [host, port] = h;
   else host = h[0];
@@ -96,15 +97,67 @@ werror("%O", h);
 
   else 
   {
-    if(c->connect(host, port)==0)
+    int x = c->connect(host, port);
+    if(!x)
     {
       return 0;
     }
   }
 
   conn = PMQCConnection(c, prop, identity, register_packet(), backend);
-
+  conn->reconnect_attempt_func = reconnect;
   return conn->is_running();
+}
+
+void reconnect(PMQCConnection connection)
+{
+  if(!auto_reconnect)
+  {
+    DEBUG(1, "PMQClient()->reconnect() called but skipping due to settings.\n");
+    return;
+  }
+
+  sleep(1);
+  DEBUG(1, "PMQClient()->reconnect() starting.\n");
+
+  int is_connected;
+  int i = 1;
+
+  conn = 0;
+  backend = Pike.Backend();
+
+  do
+  {
+
+    DEBUG(1, "PMQClient()->reconnect() attempt " + i + " of 4\n"); 
+    mixed e = catch(is_connected = connect());
+
+    if(e)
+    {
+      DEBUG(1, "an error occurred during reconnect.\n");
+      werror(describe_backtrace(e));
+    }
+    i++; 
+  }
+  while(!is_connected && i <=4 && (sleep(i*2),1));
+
+  if(is_connected)
+  {
+    DEBUG(1, "PMQClient()->reconnect() connected to server.\n");
+
+    repatch(connection);
+    destruct(connection);
+    DEBUG(1, "reconnect successful.\n");
+  }
+  else
+  {
+    DEBUG(1, "failed to reconnect.\n");
+    throw(Error.Generic("unable to reconnect to pmqd using url: " + url + "\n"));
+  }
+}
+
+void repatch(PMQCConnection connection)
+{
 }
 
 //! disconnect from a PMQ server.
@@ -136,7 +189,7 @@ private mapping register_packet()
     object d = c();
     if(d->type)
     {
-     DEBUG(2, "startup: registering packet " + d->type + "\n");
+     DEBUG(4, "startup: registering packet " + d->type + "\n");
      packets[d->type] = c;
     }
   }

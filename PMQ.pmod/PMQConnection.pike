@@ -30,6 +30,7 @@
   string client_id = 0;
   string protocol_version = 0;
   int block_read_timeout = 10;
+  int backend_running = 0;
 
   mapping packets;
   mapping incoming_packets = ([]);
@@ -63,8 +64,9 @@
     return conn->is_open();
   }
 
-  void run_backend()
+  void do_run_backend()
   {
+    backend_running = 1;
     do
     {
       float r;
@@ -78,6 +80,7 @@
         }
 
     } while(this && conn->is_open() && !stop_backend);
+    backend_running = 0;
   }
 
   void create(Stdio.File conn, PMQProperties config, mapping packets, void|Pike.Backend b)
@@ -101,7 +104,7 @@
     }
 
     if(get_mode() == MODE_CLIENT)
-      handler = Thread.Thread(run_backend);
+      handler = Thread.Thread(do_run_backend);
 
      set_conn_callbacks_nonblocking();
   }
@@ -109,8 +112,7 @@
   void set_conn_callbacks_nonblocking()
   {
     conn->set_backend(backend);
-    backend->call_out(conn->set_nonblocking, 0 , remote_read, UNDEFINED, 
-remote_close);
+    backend->call_out(conn->set_nonblocking, 0 , remote_read, UNDEFINED, remote_close);
   }
 
   int get_mode()
@@ -125,10 +127,18 @@ remote_close);
 
   void remote_close()
   {
-//write("remote close\n");
     connection_state = CONNECTION_DISCONNECT;
     DEBUG(4, "remote close\n");
-    destruct();    
+    if(attempt_reconnect())
+      return;
+//      destruct();
+  }
+
+  // attempt a reconnect, return 1 if we're going to try, otherwise return 0.
+  // should be implemented by the specific connection type (client most likely)
+  int(0..1) attempt_reconnect()
+  {
+    return 0;
   }
 
   void remote_read(string id, string data)

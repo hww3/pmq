@@ -112,7 +112,7 @@ Message.PMQMessage read(int|float|void wait)
 //werror("locking. %O\n", System.gettimeofday()[1]-st);
   Thread.MutexKey key = lock->lock();
 
-  PMQ.Message.PMQMessage msg;
+//  PMQ.Message.PMQMessage msg;
 
   if(!incoming_queue->is_empty()) 
   {
