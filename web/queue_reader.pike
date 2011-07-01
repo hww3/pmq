@@ -110,7 +110,7 @@ werror("GOT: %O\n", m);
     }
   }
   werror("messages: %O\n", messages);
-  return Caudium.HTTP.string_answer("<?xml version=\"1.0\"?><ajax-response><messages id='" + (id->misc->session_variables->message||"id") + "'><message>" + messages + "</message></messages></ajax-response>", "text/xml");
+  return Caudium.HTTP.string_answer("<?xml version=\"1.0\"?><ajax-response><messages id='" + (id->misc->session_variables->message||"id") + "'>" + messages + "</messages></ajax-response>", "text/xml");
 };
 if(err)
 {
